@@ -20,3 +20,9 @@ export interface MethodStats {
   losses: number;
   profit: number;
 }
+
+export interface MethodCapital {
+  initial: number      // Capital reçu du manager
+  current: number      // Capital évolutif de la méthode
+  validated?: number   // Capital validé en fin de méthode
+}

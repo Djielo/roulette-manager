@@ -1,6 +1,6 @@
 import { FC } from 'react'
 import { RouletteNumber } from '../../types/roulette'
-import { useMethodStore } from '../../store/useMethodStore'
+import { useRouletteStore } from '../../store/useRouletteStore'
 
 interface RouletteTableProps {
   onNumberClick?: (number: RouletteNumber) => void
@@ -9,7 +9,7 @@ interface RouletteTableProps {
 }
 
 const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
-  const addSpin = useMethodStore(state => state.addSpin)
+  const addSpin = useRouletteStore(state => state.addSpin)
 
   const handleNumberClick = (number: RouletteNumber) => {
     addSpin(number)

@@ -1,4 +1,5 @@
 import { FC, ReactNode } from 'react'
+import DevTools from '../debug/DevTools'
 
 interface MainLayoutProps {
  children: ReactNode
@@ -15,6 +16,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
      <main className="max-w-full max-h-max py-4 px-4">
        {children}
      </main>
+     {import.meta.env.DEV && <DevTools />}
    </div>
  )
 }

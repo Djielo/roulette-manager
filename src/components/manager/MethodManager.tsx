@@ -1,6 +1,7 @@
 import { FC, useState } from 'react'
-import { useMethodStore } from '../../store/useMethodStore'
+import { useRouletteStore } from '../../store/useRouletteStore'
 import HistoryDisplay from '../history/HistoryDisplay'
+import { Method } from '../../types/methods'
 
 const MethodManager: FC = () => {
   const [activeTab, setActiveTab] = useState<'history' | 'stats' | 'trends'>('history')
@@ -19,7 +20,7 @@ const MethodManager: FC = () => {
     toggleCyclicMode,
     togglePlay,
     reset
-  } = useMethodStore()
+  } = useRouletteStore()
 
   return (
     <div className="flex flex-col h-full gap-4">
@@ -106,8 +107,8 @@ const MethodManager: FC = () => {
               </label>
             </div>
           </div>
-          
-          {methods.map(method => (
+
+          {methods.map((method: Method) => (
             <div key={method.id} className="flex items-center justify-between py-1">
               <label className="flex items-center gap-2 text-white">
                 <input
