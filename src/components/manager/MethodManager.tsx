@@ -1,10 +1,13 @@
 import { FC, useState } from 'react'
+
 import { useRouletteStore } from '../../store/useRouletteStore'
 import HistoryDisplay from '../history/HistoryDisplay'
-import { Method } from '../../types/methods'
+import { Method } from '../../types/methodsTypes'
+import MethodConfig from '../config/MethodConfig'
 
 const MethodManager: FC = () => {
   const [activeTab, setActiveTab] = useState<'history' | 'stats' | 'trends'>('history')
+  const [configMethodId, setConfigMethodId] = useState<string | null>(null)
   const {
     capital,
     timer,
@@ -108,19 +111,49 @@ const MethodManager: FC = () => {
             </div>
           </div>
 
-          {methods.map((method: Method) => (
-            <div key={method.id} className="flex items-center justify-between py-1">
-              <label className="flex items-center gap-2 text-white">
-                <input
-                  type="checkbox"
-                  checked={method.active}
-                  onChange={() => toggleMethod(method.id)}
-                  className="rounded border-roulette-gold/30"
-                />
-                <span>{method.name}</span>
-              </label>
-            </div>
-          ))}
+          {methods.map((method: Method) => {
+            const config = useRouletteStore(state => state.getMethodConfig(method.id))
+
+            return (
+              <div key={method.id} className="flex items-center justify-between py-1">
+                <label className="flex items-center gap-2 text-white">
+                  <input
+                    type="checkbox"
+                    checked={method.active}
+                    onChange={() => toggleMethod(method.id)}
+                    className="rounded border-roulette-gold/30"
+                  />
+                  <span>{method.name}</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  {config?.isConfigured ? (
+                    <>
+                      <span className="text-green-500 relative group">
+                        ✓
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-roulette-navy border border-roulette-gold/30 rounded p-2 text-white text-sm whitespace-nowrap">
+                          Mise de base: {config.betUnit}€
+                        </div>
+                      </span>
+                      <button
+                        onClick={() => setConfigMethodId(method.id)}
+                        className="text-roulette-gold hover:text-roulette-gold/80"
+                      >
+                        ✎
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setConfigMethodId(method.id)}
+                      className="text-roulette-gold hover:text-roulette-gold/80"
+                    >
+                      ⚙️
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            )
+          })}
         </div>
 
         {/* Boutons */}
@@ -169,6 +202,13 @@ const MethodManager: FC = () => {
           {activeTab === 'trends' && <div>Tendances de la session</div>}
         </div>
       </div>
+
+      {/* Composant de configuration */}
+      <MethodConfig
+        methodId={configMethodId!}
+        isOpen={configMethodId !== null}
+        onClose={() => setConfigMethodId(null)}
+      />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-export type MethodType = 'ChaseNumbers' | 'SDC' | 'SixainThirds';
+export type MethodType = 'ChasseNumbers' | 'SDC' | 'SixainThirds';
 
 export interface Method {
   id: string;

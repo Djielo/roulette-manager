@@ -1,9 +1,10 @@
 // src/store/useRouletteStore.ts
 import { create } from 'zustand'
-import { Method } from '../types/methods'
+import { Method } from '../types/methodsTypes'
 import { RouletteNumber } from '../types/roulette'
 import { MethodCapital } from '../types/manager'
 import { validateRouletteNumber } from '../utils/validation'
+import { ChasseMethodState, chasseActions } from '../types/methods/chasse'
 
 interface Capital {
   initial: number
@@ -46,6 +47,11 @@ interface MethodStats {
   spinsCount: number
 }
 
+interface MethodConfig {
+  betUnit: number;
+  isConfigured: boolean;
+}
+
 interface StoreState {
   capital: Capital
   timer: TimerState
@@ -58,6 +64,9 @@ interface StoreState {
   stats: Record<string, MethodStats>
   isPlaying: boolean
   methodCapital: Record<string, MethodCapital>
+  methodConfigs: Record<string, MethodConfig>
+  chasseState: ChasseMethodState;
+  validationErrors: string[];
 }
 
 interface StoreActions {
@@ -76,6 +85,11 @@ interface StoreActions {
   initializeMethodCapital: (methodId: string) => void
   updateMethodCapital: (methodId: string, current: number) => void
   validateMethodCapital: (methodId: string, final: number) => void
+  updateMethodConfig: (methodId: string, config: Partial<MethodConfig>) => void
+  getMethodConfig: (methodId: string) => MethodConfig | undefined
+  initializeChasse: () => void
+  updateChasseState: (number: RouletteNumber) => void
+  validateStart: () => string[];
 }
 
 const DEFAULT_CAPITAL: Capital = {
@@ -105,11 +119,26 @@ const DEFAULT_SESSION: SessionState = {
   stoppedBy: null
 }
 
+const DEFAULT_METHOD_CONFIG: MethodConfig = {
+  betUnit: 0.2,
+  isConfigured: false
+}
+
 const DEFAULT_METHODS: Method[] = [
-  { id: 'chase', name: 'Chasse aux Numéros', active: false, order: 0 },
+  { id: 'chasse', name: 'Chasse aux Numéros', active: false, order: 0 },
   { id: 'sdc', name: 'SDC', active: false, order: 1 },
   { id: 'sixains', name: 'Tiers sur Sixains', active: false, order: 2 }
 ]
+
+const DEFAULT_CHASSE_STATE: ChasseMethodState = {
+  phase: 'observation',
+  observationCount: 0,
+  remainingObservationTours: 24,
+  remainingPlayTours: 12,
+  playCount: 0,
+  numberCounts: {},
+  selectedNumbers: []
+}
 
 export const useRouletteStore = create<StoreState & StoreActions>((set, get) => ({
   // État initial
@@ -117,13 +146,21 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
   timer: DEFAULT_TIMER,
   limits: DEFAULT_LIMITS,
   session: DEFAULT_SESSION,
-  methods: DEFAULT_METHODS,
-  activeMethodId: null,
-  cyclicMode: false,
-  history: [],
-  stats: {},
   isPlaying: false,
+  history: [],
+  activeMethodId: null,
+  methods: DEFAULT_METHODS,
   methodCapital: {},
+  chasseState: {
+    ...DEFAULT_CHASSE_STATE,
+    numberCounts: {},
+    selectedNumbers: []
+  },
+  stats: {},
+  methodConfigs: {},
+  cyclicMode: true,
+  validationErrors: [] as string[],
+  
 
   // Actions sur le capital
   setCapital: (type: 'initial' | 'current', value: number) => {
@@ -182,7 +219,7 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
       set((state: StoreState) => ({
         timer: { ...state.timer, remaining: state.timer.remaining - 1 }
       }))
-    }, 1000)
+    }, 60000)
   },
 
   toggleMethod: (id: string) => {
@@ -201,34 +238,83 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
     set((state: StoreState) => ({ cyclicMode: !state.cyclicMode }))
   },
 
-  togglePlay: () => {
-    const state = get()
-    if (!state.isPlaying) {
-      set({ 
-        isPlaying: true,
-        session: { 
-          isActive: true, 
-          hasExpired: false,
-          stoppedBy: null
-        }
-      })
-      get().startTimer()
+  // Ajouter la fonction validateStart dans le store
+  validateStart: () => {
+    const errors: string[] = [];
+    const state = get();
+
+    if (state.capital.initial <= 0) errors.push('Le capital initial doit être positif');
+    if (state.timer.duration <= 0) errors.push('Le temps doit être positif');
+    if (state.limits.maxLoss <= 0) errors.push('La perte maximale doit être positive');
+    if (state.limits.targetProfit <= 0) errors.push('L\'objectif de gain doit être positif');
+
+    const activeMethods = state.methods.filter((m: Method) => m.active);
+    if (activeMethods.length === 0) {
+      errors.push('Sélectionnez au moins une méthode');
     } else {
-      set({ 
-        isPlaying: false,
-        session: {
-          isActive: false,
-          hasExpired: false,
-          stoppedBy: null
-        }
-      })
+      const unconfiguredMethods = activeMethods.filter((m: Method) => 
+        !state.methodConfigs[m.id]?.isConfigured
+      );
+      if (unconfiguredMethods.length > 0) {
+        errors.push(`Configurez les méthodes suivantes : ${unconfiguredMethods.map((m: Method) => m.name).join(', ')}`);
+      }
     }
+
+    return errors;
   },
+
+// Modifier le togglePlay existant
+togglePlay: () => {
+  const state = get()
+  if (!state.isPlaying) {
+    // Validation avant démarrage
+    const errors = get().validateStart();
+    if (errors.length > 0) {
+      set({ validationErrors: errors });
+      return;
+    }
+
+    // Sélection première méthode si aucune n'est active
+    if (!state.activeMethodId) {
+      const firstMethod = state.methods.find(m => m.active);
+      if (firstMethod) {
+        set({ activeMethodId: firstMethod.id });
+      }
+    }
+
+    // Initialisation Chasse si active     
+    const chasseMethod = state.methods.find(m => m.id === 'chasse' && m.active)      
+    if (chasseMethod) {       
+      get().initializeChasse()
+    }
+
+    set({ 
+      isPlaying: true,
+      validationErrors: [], // Clear errors
+      session: { 
+        isActive: true, 
+        hasExpired: false,
+        stoppedBy: null
+      }
+    })
+    get().startTimer()
+  } else {
+    set({ 
+      isPlaying: false,
+      session: {
+        isActive: false,
+        hasExpired: false,
+        stoppedBy: null
+      }
+    })
+  }
+},
 
   addSpin: (number: RouletteNumber) => {
     const validNumber = validateRouletteNumber(number)
     const { activeMethodId, capital } = get()
     
+    // Ajoute à l'historique général
     set((state: StoreState) => ({
       history: [
         ...state.history,
@@ -240,7 +326,14 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
         }
       ]
     }))
-
+  
+    // Si la méthode Chasse est active, met à jour son état
+    const chasseMethod = get().methods.find(m => m.id === 'chasse' && m.active)
+    if (chasseMethod && get().isPlaying) {
+      get().updateChasseState(validNumber)
+    }
+  
+    // Mise à jour des stats si une méthode est active
     if (activeMethodId) {
       set((state: StoreState) => {
         const currentStats = state.stats[activeMethodId] || {
@@ -264,14 +357,26 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
   },
 
   reset: () => {
+    const currentStats = get().stats;
+    const currentConfigs = get().methodConfigs;
+  
     set({
       capital: { ...DEFAULT_CAPITAL },
       timer: { ...DEFAULT_TIMER },
+      limits: { ...DEFAULT_LIMITS },
       session: { ...DEFAULT_SESSION },
       isPlaying: false,
       history: [],
       activeMethodId: null,
-      stats: {}
+      methods: DEFAULT_METHODS,
+      chasseState: {
+        ...DEFAULT_CHASSE_STATE,
+        numberCounts: {},
+        selectedNumbers: []
+      },
+      stats: currentStats,
+      methodConfigs: currentConfigs,
+      cyclicMode: true
     })
   },
 
@@ -332,5 +437,55 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
         current: final
       }
     }))
+  },
+
+  updateMethodConfig: (methodId: string, config: Partial<MethodConfig>) => {
+    const currentConfig = get().methodConfigs[methodId] || DEFAULT_METHOD_CONFIG;
+    const newConfig = { 
+      ...currentConfig, 
+      ...config,
+      isConfigured: true 
+    };
+
+    set((state) => ({
+      methodConfigs: {
+        ...state.methodConfigs,
+        [methodId]: newConfig
+      }
+    }));
+
+    // Sauvegarde dans localStorage
+    localStorage.setItem('methodConfigs', JSON.stringify({
+      ...get().methodConfigs,
+      [methodId]: newConfig
+    }));
+  },
+
+  getMethodConfig: (methodId: string) => {
+    return get().methodConfigs[methodId] || DEFAULT_METHOD_CONFIG;
+  },
+
+  // Actions pour la méthode Chasse
+  initializeChasse: () => {
+    const history = get().history
+    const state = {...DEFAULT_CHASSE_STATE}
+    if (history.length > 0) {
+      chasseActions.analyzeHistory(state, history.map(h => h.number))
+    }
+    set({ chasseState: state })
+  },
+
+  updateChasseState: (number: RouletteNumber) => {
+    const state = {...get().chasseState}
+    chasseActions.addNumber(state, number) // on utilise directement le number passé
+    set({ chasseState: state })
   }
 }))
+
+// Au démarrage, charger les configs depuis localStorage
+const savedConfigs = localStorage.getItem('methodConfigs');
+if (savedConfigs) {
+  useRouletteStore.setState({ 
+    methodConfigs: JSON.parse(savedConfigs) 
+  });
+}

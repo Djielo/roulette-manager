@@ -1,14 +1,30 @@
 import { FC } from 'react'
 import RouletteTable from '../roulette/RouletteTable'
-import MartingaleMethod from './MartingaleMethod'
-import TempOverlayTest from '../roulette/TempOverlayTest'
+import ChasseMethod from './ChasseMethod'
+import { useRouletteStore } from '../../store/useRouletteStore'
 
 const MethodView: FC = () => {
+  const activeMethod = useRouletteStore(state =>
+    state.methods.find(m => m.active)
+  )
+
+  const renderActiveMethod = () => {
+    if (!activeMethod) return null
+
+    switch (activeMethod.id) {
+      case 'chasse':
+        return <ChasseMethod />
+      default:
+        return null
+    }
+  }
   return (
     <div className="h-full p-4 flex flex-col">
       {/* En-tête méthode */}
       <div className="mb-4 border-b border-roulette-gold/30 pb-4">
-        <div className="text-roulette-gold text-xl">Martingale Progressions</div>
+        <div className="text-roulette-gold text-xl">
+          {activeMethod?.name || 'Sélectionnez une méthode'}
+        </div>
       </div>
 
       {/* Section principale */}
@@ -16,7 +32,7 @@ const MethodView: FC = () => {
         {/* Bloc gauche */}
         <div className="flex-1">
           {/* Zone de la méthode active */}
-          <MartingaleMethod />
+          {renderActiveMethod()}
         </div>
 
         {/* Capitaux à droite */}
@@ -40,7 +56,7 @@ const MethodView: FC = () => {
 
       {/* Table de roulette */}
       <div className="mt-1">
-        <RouletteTable />        
+        <RouletteTable />
       </div>
     </div>
   )
