@@ -36,7 +36,7 @@ const ChasseMethod: FC = () => {
 
       {/* Affichage des numéros */}
       <div className="grid grid-cols-6 gap-2">
-        {Object.entries(numberCounts).map(([number, data]) => (
+        {history.length > 0 && Object.entries(numberCounts).map(([number, data]) => (
           <div
             key={number}
             className={`${getNumberColor(data.count)} p-2 text-center border border-roulette-gold/30 rounded`}

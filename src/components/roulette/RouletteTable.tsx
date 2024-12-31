@@ -13,7 +13,8 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
   const activeMethod = useRouletteStore(state => state.methods.find(m => m.active))
   const chasseState = useRouletteStore(state => state.chasseState)
   const config = useRouletteStore(state => state.methodConfigs['chasse'])
-  const canClickTable = useRouletteStore(state => state.isPlaying);
+  const isPlaying = useRouletteStore(state => state.isPlaying)
+  const addSpin = useRouletteStore(state => state.addSpin)
 
   const getBets = () => {
     if (!activeMethod) return []
@@ -30,13 +31,17 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
     }
   }
 
-  const addSpin = useRouletteStore(state => state.addSpin)
-
   const handleNumberClick = (number: RouletteNumber) => {
-    if (!canClickTable) return;
+    if (!isPlaying) {
+      useRouletteStore.setState({
+        validationErrors: ['Vous devez démarrer le jeu avant de pouvoir jouer']
+      });
+      return;
+    }
+
     addSpin(number);
     onNumberClick?.(number);
-  };
+  }
 
   const renderNumber = (number: number) => (
     <div
