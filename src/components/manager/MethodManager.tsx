@@ -35,11 +35,43 @@ const MethodManager: FC = () => {
             <div>
               <label className="block text-roulette-gold/80 text-sm">Capital Initial:</label>
               <input
-                type="number"
-                value={capital.initial}
-                onChange={e => setCapital('initial', +e.target.value)}
+                type="text"
+                inputMode="decimal"
+                value={capital.initial === 0 ? '' : capital.initial.toString()} // Si 0, on affiche un champ vide
+                onKeyDown={(e) => {
+                  if (e.key === '.') {
+                    e.preventDefault();
+                    const cursorPosition = e.currentTarget.selectionStart || 0;
+                    const currentValue = e.currentTarget.value;
+                    const newValue = !currentValue.includes(',') ?
+                      currentValue.slice(0, cursorPosition) + ',' + currentValue.slice(cursorPosition) :
+                      currentValue;
+                    e.currentTarget.value = newValue;
+                    setTimeout(() => {
+                      e.currentTarget.selectionStart = e.currentTarget.selectionEnd = cursorPosition + 1;
+                    }, 0);
+                  }
+                }}
+                onChange={(e) => {
+                  let inputValue = e.target.value.replace(',', '.');
+                  const regex = /^\d*(\.\d{0,2})?$/;
+                  if (regex.test(inputValue) || inputValue === '') {
+                    setCapital('initial', inputValue === '' ? '' : inputValue); // Conserve une chaîne temporairement
+                  }
+                }}
+                onBlur={() => {
+                  const currentValue = String(capital.initial); // Conversion explicite en string
+                  if (currentValue === '' || currentValue === '.') {
+                    setCapital('initial', 0);
+                  } else {
+                    let normalizedValue = parseFloat(String(capital.initial).replace(',', '.'));
+                    normalizedValue = Math.max(0.01, normalizedValue);
+                    setCapital('initial', Number(normalizedValue.toFixed(2)));
+                  }
+                }}
                 className="bg-roulette-navy border border-roulette-gold/30 p-1 rounded w-full text-white"
               />
+
             </div>
             <div>
               <label className="block text-roulette-gold/80 text-sm">Capital Actuel:</label>

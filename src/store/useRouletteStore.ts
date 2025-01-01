@@ -70,7 +70,7 @@ interface StoreState {
 }
 
 interface StoreActions {
-  setCapital: (type: 'initial' | 'current', value: number) => void
+  setCapital: (type: 'initial' | 'current', value: string | number) => void;
   setTimer: (value: number) => void
   startTimer: () => void
   toggleMethod: (id: string) => void
@@ -163,20 +163,28 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
   
 
   // Actions sur le capital
-  setCapital: (type: 'initial' | 'current', value: number) => {
+  setCapital: (type: 'initial' | 'current', value: string | number) => {
     set((state: StoreState) => {
+      const numericValue = typeof value === 'string' ? 
+        parseFloat(value) || 0 : 
+        value;
+  
       const newCapital = {
         ...state.capital,
         [type]: value
       }
-      
+  
       if (type === 'current') {
+        const initialValue = typeof state.capital.initial === 'string' ? 
+          parseFloat(state.capital.initial) || 0 : 
+          state.capital.initial;
+  
         newCapital.evolution = {
-          amount: value - state.capital.initial,
-          percentage: ((value - state.capital.initial) / state.capital.initial) * 100
+          amount: numericValue - initialValue,
+          percentage: ((numericValue - initialValue) / initialValue) * 100
         }
       }
-      
+  
       return { capital: newCapital }
     })
   },

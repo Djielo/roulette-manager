@@ -1,6 +1,6 @@
 export interface GameSettings {
-  initialCapital: number;
-  currentCapital: number;
+  initialCapital: string | number;
+  currentCapital: string | number;
   betUnit: number;
   maxLoss: number;
   targetProfit: number;
