@@ -194,19 +194,28 @@ const MethodManager: FC = () => {
 
         {/* Boutons */}
         <div className="flex justify-between gap-2">
+          <div className="flex gap-2">
+            <button
+              className={`bg-roulette-green text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold ${sessionLocked ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              onClick={togglePlay}
+              disabled={sessionLocked}
+            >
+              Démarrer
+            </button>
+            <button
+              className="bg-gray-700 text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold"
+              onClick={reset}
+            >
+              Réinitialiser
+            </button>
+          </div>
           <button
-            className={`bg-roulette-green text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold ${sessionLocked ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            onClick={togglePlay}
+            className="bg-roulette-navy text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold"
+            onClick={() => {/* TODO: Ouvrir la modale de gestion */ }}
             disabled={sessionLocked}
           >
-            Démarrer
-          </button>
-          <button
-            className="bg-gray-700 text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold"
-            onClick={reset}
-          >
-            Réinitialiser
+            Gérer les méthodes
           </button>
         </div>
       </div>
