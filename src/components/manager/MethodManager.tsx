@@ -13,7 +13,6 @@ const MethodManager: FC = () => {
     timer,
     limits,
     methods,
-    isPlaying,
     cyclicMode,
     setCapital,
     setTimer,
@@ -22,7 +21,8 @@ const MethodManager: FC = () => {
     toggleMethod,
     toggleCyclicMode,
     togglePlay,
-    reset
+    reset,
+    sessionLocked,
   } = useRouletteStore()
 
   return (
@@ -37,7 +37,8 @@ const MethodManager: FC = () => {
               <input
                 type="text"
                 inputMode="decimal"
-                value={capital.initial === 0 ? '' : capital.initial.toString()} // Si 0, on affiche un champ vide
+                disabled={sessionLocked}
+                value={capital.initial === 0 ? '' : capital.initial.toString()}
                 onKeyDown={(e) => {
                   if (e.key === '.') {
                     e.preventDefault();
@@ -56,11 +57,11 @@ const MethodManager: FC = () => {
                   let inputValue = e.target.value.replace(',', '.');
                   const regex = /^\d*(\.\d{0,2})?$/;
                   if (regex.test(inputValue) || inputValue === '') {
-                    setCapital('initial', inputValue === '' ? '' : inputValue); // Conserve une chaîne temporairement
+                    setCapital('initial', inputValue === '' ? '' : inputValue);
                   }
                 }}
                 onBlur={() => {
-                  const currentValue = String(capital.initial); // Conversion explicite en string
+                  const currentValue = String(capital.initial);
                   if (currentValue === '' || currentValue === '.') {
                     setCapital('initial', 0);
                   } else {
@@ -71,7 +72,6 @@ const MethodManager: FC = () => {
                 }}
                 className="bg-roulette-navy border border-roulette-gold/30 p-1 rounded w-full text-white"
               />
-
             </div>
             <div>
               <label className="block text-roulette-gold/80 text-sm">Capital Actuel:</label>
@@ -99,6 +99,7 @@ const MethodManager: FC = () => {
               <label className="block text-roulette-gold/80 text-sm">Temps (min):</label>
               <input
                 type="number"
+                disabled={sessionLocked}
                 value={timer.duration}
                 onChange={e => setTimer(+e.target.value)}
                 className="bg-roulette-navy border border-roulette-gold/30 p-1 rounded w-full text-white"
@@ -108,6 +109,7 @@ const MethodManager: FC = () => {
               <label className="block text-roulette-gold/80 text-sm">Perte max (%):</label>
               <input
                 type="number"
+                disabled={sessionLocked}
                 value={limits.maxLoss}
                 onChange={e => setMaxLoss(+e.target.value)}
                 className="bg-roulette-navy border border-roulette-gold/30 p-1 rounded w-full text-white"
@@ -117,6 +119,7 @@ const MethodManager: FC = () => {
               <label className="block text-roulette-gold/80 text-sm">Objectif gain (%):</label>
               <input
                 type="number"
+                disabled={sessionLocked}
                 value={limits.targetProfit}
                 onChange={e => setTargetProfit(+e.target.value)}
                 className="bg-roulette-navy border border-roulette-gold/30 p-1 rounded w-full text-white"
@@ -129,11 +132,11 @@ const MethodManager: FC = () => {
         <div className="mb-4">
           <div className='flex justify-between'>
             <h3 className="font-semibold mb-2 text-roulette-gold">Gestion des Méthodes</h3>
-            {/* Mode cyclique */}
             <div className="mb-4">
               <label className="flex items-center gap-2 text-white">
                 <input
                   type="checkbox"
+                  disabled={sessionLocked}
                   checked={cyclicMode}
                   onChange={toggleCyclicMode}
                   className="rounded border-roulette-gold/30"
@@ -151,6 +154,7 @@ const MethodManager: FC = () => {
                 <label className="flex items-center gap-2 text-white">
                   <input
                     type="checkbox"
+                    disabled={sessionLocked}
                     checked={method.active}
                     onChange={() => toggleMethod(method.id)}
                     className="rounded border-roulette-gold/30"
@@ -158,7 +162,7 @@ const MethodManager: FC = () => {
                   <span>{method.name}</span>
                 </label>
                 <div className="flex items-center gap-2">
-                  {config?.isConfigured ? (
+                  {!sessionLocked && config?.isConfigured && (
                     <>
                       <span className="text-green-500 relative group">
                         ✓
@@ -173,7 +177,8 @@ const MethodManager: FC = () => {
                         ✎
                       </button>
                     </>
-                  ) : (
+                  )}
+                  {!sessionLocked && !config?.isConfigured && (
                     <button
                       onClick={() => setConfigMethodId(method.id)}
                       className="text-roulette-gold hover:text-roulette-gold/80"
@@ -182,7 +187,6 @@ const MethodManager: FC = () => {
                     </button>
                   )}
                 </div>
-
               </div>
             )
           })}
@@ -191,10 +195,12 @@ const MethodManager: FC = () => {
         {/* Boutons */}
         <div className="flex justify-between gap-2">
           <button
-            className={`${isPlaying ? 'bg-roulette-red' : 'bg-roulette-green'} text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold`}
+            className={`bg-roulette-green text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold ${sessionLocked ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             onClick={togglePlay}
+            disabled={sessionLocked}
           >
-            {isPlaying ? 'Arrêter' : 'Démarrer'}
+            Démarrer
           </button>
           <button
             className="bg-gray-700 text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold"

@@ -67,6 +67,7 @@ interface StoreState {
   methodConfigs: Record<string, MethodConfig>
   chasseState: ChasseMethodState;
   validationErrors: string[];
+  sessionLocked: boolean
 }
 
 interface StoreActions {
@@ -133,9 +134,9 @@ const DEFAULT_METHODS: Method[] = [
 const DEFAULT_CHASSE_STATE: ChasseMethodState = {
   phase: 'observation',
   observationCount: 0,
+  playCount: 0,
   remainingObservationTours: 24,
   remainingPlayTours: 12,
-  playCount: 0,
   numberCounts: {},
   selectedNumbers: []
 }
@@ -160,6 +161,7 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
   methodConfigs: {},
   cyclicMode: true,
   validationErrors: [] as string[],
+  sessionLocked: false,
   
 
   // Actions sur le capital
@@ -274,15 +276,13 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
 // Modifier le togglePlay existant
 togglePlay: () => {
   const state = get()
-  if (!state.isPlaying) {
-    // Validation avant démarrage
+  if (!state.sessionLocked) {
     const errors = get().validateStart();
     if (errors.length > 0) {
       set({ validationErrors: errors });
       return;
     }
 
-    // Sélection première méthode si aucune n'est active
     if (!state.activeMethodId) {
       const firstMethod = state.methods.find(m => m.active);
       if (firstMethod) {
@@ -290,15 +290,26 @@ togglePlay: () => {
       }
     }
 
-    // Initialisation Chasse si active     
     const chasseMethod = state.methods.find(m => m.id === 'chasse' && m.active)      
     if (chasseMethod) {       
       get().initializeChasse()
     }
 
+    // Si historique vide, on vide les numéros
+    if (state.history.length === 0) {
+      set({
+        chasseState: {
+          ...DEFAULT_CHASSE_STATE,
+          numberCounts: {},
+          selectedNumbers: []
+        }
+      })
+    }
+
     set({ 
       isPlaying: true,
-      validationErrors: [], // Clear errors
+      sessionLocked: true,
+      validationErrors: [],
       session: { 
         isActive: true, 
         hasExpired: false,
@@ -306,15 +317,6 @@ togglePlay: () => {
       }
     })
     get().startTimer()
-  } else {
-    set({ 
-      isPlaying: false,
-      session: {
-        isActive: false,
-        hasExpired: false,
-        stoppedBy: null
-      }
-    })
   }
 },
 
@@ -384,7 +386,8 @@ togglePlay: () => {
       },
       stats: currentStats,
       methodConfigs: currentConfigs,
-      cyclicMode: true
+      cyclicMode: true,
+      sessionLocked: false,
     })
   },
 
