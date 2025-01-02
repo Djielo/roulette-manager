@@ -2,7 +2,6 @@ import { FC, useState } from 'react'
 
 import { useRouletteStore } from '../../store/useRouletteStore'
 import HistoryDisplay from '../history/HistoryDisplay'
-import { Method } from '../../types/methodsTypes'
 import MethodConfig from '../config/MethodConfig'
 import MethodsModal from '../modal/MethodsModal'
 
@@ -14,14 +13,10 @@ const MethodManager: FC = () => {
     capital,
     timer,
     limits,
-    methods,
-    cyclicMode,
     setCapital,
     setTimer,
     setMaxLoss,
     setTargetProfit,
-    toggleMethod,
-    toggleCyclicMode,
     togglePlay,
     reset,
     sessionLocked,
