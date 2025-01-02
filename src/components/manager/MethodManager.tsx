@@ -9,6 +9,7 @@ const MethodManager: FC = () => {
   const [activeTab, setActiveTab] = useState<'history' | 'stats' | 'trends'>('history')
   const [configMethodId, setConfigMethodId] = useState<string | null>(null)
   const [methodsModalOpen, setMethodsModalOpen] = useState(false)
+  const { getSortedMethods } = useRouletteStore()
   const {
     capital,
     timer,
@@ -20,6 +21,7 @@ const MethodManager: FC = () => {
     togglePlay,
     reset,
     sessionLocked,
+    activeMethodId
   } = useRouletteStore()
 
   return (
@@ -125,12 +127,21 @@ const MethodManager: FC = () => {
           </div>
         </div>
 
-        {/* Méthodes */}
         <div className="mb-4">
           <div className='flex justify-between'>
             <h3 className="font-semibold mb-2 text-roulette-gold">Gestion de la session</h3>
-            <div className="mb-4">
-            </div>
+          </div>
+          <div className="bg-roulette-roi/30 border border-roulette-gold/30 rounded-lg p-4 space-y-2">
+            {getSortedMethods().map((method) => (
+              <div key={method.id} className="flex items-center gap-2 text-sm text-white p-0">
+                <div className={`w-3 h-3 rounded-full border 
+         ${!method.active ? 'border-red-500 bg-red-900/20' :
+                    method.id === activeMethodId ? 'border-green-500 bg-green-400' :
+                      'border-green-500 bg-green-900/20'}`}
+                />
+                <span>{method.name}</span>
+              </div>
+            ))}
           </div>
         </div>
 
