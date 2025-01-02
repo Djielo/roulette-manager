@@ -92,6 +92,7 @@ interface StoreActions {
   initializeChasse: () => void
   updateChasseState: (number: RouletteNumber) => void
   validateStart: () => string[];
+  reorderMethods: (startIndex: number, endIndex: number) => void;
 }
 
 const DEFAULT_CAPITAL: Capital = {
@@ -482,6 +483,22 @@ togglePlay: () => {
     return [...state.methods].sort((a, b) => {
       if (a.active === b.active) return a.order - b.order; // Préserve l'ordre existant
       return a.active ? -1 : 1; // Méthodes sélectionnées en premier
+    });
+  },
+
+  reorderMethods: (startIndex: number, endIndex: number) => {
+    set((state) => {
+      const sortedMethods = [...state.methods];  // Copie pour ne pas muter directement
+      const [removed] = sortedMethods.splice(startIndex, 1);
+      sortedMethods.splice(endIndex, 0, removed);
+      
+      // Mise à jour des ordres uniquement pour les méthodes sélectionnées
+      const updatedMethods = sortedMethods.map((method, index) => ({
+        ...method,
+        order: index
+      }));
+  
+      return { methods: updatedMethods };
     });
   },
 
