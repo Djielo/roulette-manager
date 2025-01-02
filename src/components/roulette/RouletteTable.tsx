@@ -10,7 +10,7 @@ interface RouletteTableProps {
 }
 
 const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
-  const activeMethod = useRouletteStore(state => state.methods.find(m => m.active))
+  const activeMethod = useRouletteStore(state => state.methods.find(m => m.selected))
   const chasseState = useRouletteStore(state => state.chasseState)
   const config = useRouletteStore(state => state.methodConfigs['chasse'])
   const isPlaying = useRouletteStore(state => state.isPlaying)

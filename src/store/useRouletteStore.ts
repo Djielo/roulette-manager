@@ -128,9 +128,9 @@ const DEFAULT_METHOD_CONFIG: MethodConfig = {
 }
 
 const DEFAULT_METHODS: Method[] = [
-  { id: 'chasse', name: 'Chasse aux Numéros', active: false, order: 0 },
-  { id: 'sdc', name: 'SDC', active: false, order: 1 },
-  { id: 'sixains', name: 'Tiers sur Sixains', active: false, order: 2 }
+  { id: 'chasse', name: 'Chasse aux Numéros', selected: false, order: 0 },
+  { id: 'sdc', name: 'SDC', selected: false, order: 1 },
+  { id: 'sixains', name: 'Tiers sur Sixains', selected: false, order: 2 }
 ]
 
 const DEFAULT_CHASSE_STATE: ChasseMethodState = {
@@ -237,7 +237,7 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
   toggleMethod: (id: string) => {
     set((state: StoreState) => ({
       methods: state.methods.map((m: Method) => 
-        m.id === id ? { ...m, active: !m.active } : m
+        m.id === id ? { ...m, selected: !m.selected } : m
       )
     }))
   },
@@ -260,11 +260,11 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
     if (state.limits.maxLoss <= 0) errors.push('La perte maximale doit être positive');
     if (state.limits.targetProfit <= 0) errors.push('L\'objectif de gain doit être positif');
 
-    const activeMethods = state.methods.filter((m: Method) => m.active);
-    if (activeMethods.length === 0) {
+    const selectedMethods = state.methods.filter((m: Method) => m.selected);
+    if (selectedMethods.length === 0) {
       errors.push('Sélectionnez au moins une méthode');
     } else {
-      const unconfiguredMethods = activeMethods.filter((m: Method) => 
+      const unconfiguredMethods = selectedMethods.filter((m: Method) => 
         !state.methodConfigs[m.id]?.isConfigured
       );
       if (unconfiguredMethods.length > 0) {
@@ -286,13 +286,13 @@ togglePlay: () => {
     }
 
     if (!state.activeMethodId) {
-      const firstMethod = state.methods.find(m => m.active);
+      const firstMethod = state.methods.find(m => m.selected);
       if (firstMethod) {
         set({ activeMethodId: firstMethod.id });
       }
     }
 
-    const chasseMethod = state.methods.find(m => m.id === 'chasse' && m.active)      
+    const chasseMethod = state.methods.find(m => m.id === 'chasse' && m.selected)      
     if (chasseMethod) {       
       get().initializeChasse()
     }
@@ -340,7 +340,7 @@ togglePlay: () => {
     }))
   
     // Si la méthode Chasse est active, met à jour son état
-    const chasseMethod = get().methods.find(m => m.id === 'chasse' && m.active)
+    const chasseMethod = get().methods.find(m => m.id === 'chasse' && m.selected)
     if (chasseMethod && get().isPlaying) {
       get().updateChasseState(validNumber)
     }
@@ -481,24 +481,24 @@ togglePlay: () => {
   getSortedMethods: () => {
     const state = get();
     return [...state.methods].sort((a, b) => {
-      if (a.active === b.active) return a.order - b.order; // Préserve l'ordre existant
-      return a.active ? -1 : 1; // Méthodes sélectionnées en premier
+      if (a.selected === b.selected) return a.order - b.order; // Préserve l'ordre existant
+      return a.selected ? -1 : 1; // Méthodes sélectionnées en premier
     });
   },
 
   reorderMethods: (startIndex: number, endIndex: number) => {
     set((state) => {
       const sortedMethods = [...state.methods];
-      const activeMethods = sortedMethods.filter(m => m.active);
-      const inactiveMethods = sortedMethods.filter(m => !m.active);
+      const selectedMethods = sortedMethods.filter(m => m.selected);
+      const unselectedMethods = sortedMethods.filter(m => !m.selected);
       
-      const [removed] = activeMethods.splice(startIndex, 1);
-      activeMethods.splice(endIndex, 0, removed);
+      const [removed] = selectedMethods.splice(startIndex, 1);
+      selectedMethods.splice(endIndex, 0, removed);
       
-      // Update orders for active methods only
+      // Update orders for selected methods only
       const reorderedMethods = [
-        ...activeMethods.map((m, i) => ({ ...m, order: i })),
-        ...inactiveMethods
+        ...selectedMethods.map((m, i) => ({ ...m, order: i })),
+        ...unselectedMethods
       ];
       
       return { methods: reorderedMethods };

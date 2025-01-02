@@ -135,7 +135,7 @@ const MethodManager: FC = () => {
             {getSortedMethods().map((method) => (
               <div key={method.id} className="flex items-center gap-2 text-sm text-white p-0">
                 <div className={`w-3 h-3 rounded-full border 
-         ${!method.active ? 'border-red-500 bg-red-900/20' :
+         ${!method.selected ? 'border-red-500 bg-red-900/20' :
                     method.id === activeMethodId ? 'border-green-500 bg-green-400' :
                       'border-green-500 bg-green-900/20'}`}
                 />

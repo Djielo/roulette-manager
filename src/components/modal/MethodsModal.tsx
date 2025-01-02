@@ -33,7 +33,7 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
     const sourceMethod = sortedMethods[sourceIndex];
     const destinationMethod = sortedMethods[destinationIndex];
 
-    if (!sourceMethod.active || !destinationMethod.active) return;
+    if (!sourceMethod.selected || !destinationMethod.selected) return;
 
     reorderMethods(sourceIndex, destinationIndex);
   }
@@ -72,7 +72,7 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
                     key={`method-${method.id}`}
                     draggableId={`method-${method.id}`}
                     index={index}
-                    isDragDisabled={!method.active || sessionLocked}
+                    isDragDisabled={!method.selected || sessionLocked}
                   >
                     {(provided, snapshot) => (
                       <div
@@ -81,9 +81,9 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
                         {...provided.dragHandleProps}
                         className={`
                           flex items-center justify-between py-2 px-3
-                          ${method.active ? 'bg-roulette-roi/50' : ''}
+                          ${method.selected ? 'bg-roulette-roi/50' : ''}
                           ${snapshot.isDragging ? 'bg-roulette-roi shadow-lg' : ''}
-                          ${method.active ? 'cursor-move' : ''}
+                          ${method.selected ? 'cursor-move' : ''}
                           rounded transition-colors
                         `}
                       >
@@ -91,7 +91,7 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
                           <input
                             type="checkbox"
                             disabled={sessionLocked}
-                            checked={method.active}
+                            checked={method.selected}
                             onChange={() => toggleMethod(method.id)}
                             className="rounded border-roulette-gold/30"
                           />

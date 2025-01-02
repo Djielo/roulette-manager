@@ -5,7 +5,7 @@ import { useRouletteStore } from '../../store/useRouletteStore'
 
 const MethodView: FC = () => {
   const activeMethod = useRouletteStore(state =>
-    state.methods.find(m => m.active)
+    state.methods.find(m => m.selected)
   )
 
   const renderActiveMethod = () => {

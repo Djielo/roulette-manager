@@ -3,7 +3,7 @@ export type MethodType = 'ChasseNumbers' | 'SDC' | 'SixainThirds';
 export interface Method {
   id: string;
   name: string;
-  active: boolean;
+  selected: boolean;
   order: number;
 }
 
