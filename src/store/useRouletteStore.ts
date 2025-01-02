@@ -67,7 +67,8 @@ interface StoreState {
   methodConfigs: Record<string, MethodConfig>
   chasseState: ChasseMethodState;
   validationErrors: string[];
-  sessionLocked: boolean
+  sessionLocked: boolean;
+  getSortedMethods: () => Method[]
 }
 
 interface StoreActions {
@@ -474,6 +475,14 @@ togglePlay: () => {
 
   getMethodConfig: (methodId: string) => {
     return get().methodConfigs[methodId] || DEFAULT_METHOD_CONFIG;
+  },
+
+  getSortedMethods: () => {
+    const state = get();
+    return [...state.methods].sort((a, b) => {
+      if (a.active === b.active) return a.order - b.order; // Préserve l'ordre existant
+      return a.active ? -1 : 1; // Méthodes sélectionnées en premier
+    });
   },
 
   // Actions pour la méthode Chasse

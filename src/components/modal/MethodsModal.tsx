@@ -11,13 +11,16 @@ interface MethodsModalProps {
 
 const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodId }) => {
   const {
-    methods,
     cyclicMode,
     sessionLocked,
     toggleMethod,
     toggleCyclicMode,
     getMethodConfig,
+    getSortedMethods,
   } = useRouletteStore()
+
+  // Utilisation du sélecteur au lieu de methods directement
+  const sortedMethods = getSortedMethods()
 
   if (!isOpen) return null
 
@@ -40,7 +43,7 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
           </div>
         </div>
 
-        {methods.map((method: Method) => {
+        {sortedMethods.map((method: Method) => {
           const config = getMethodConfig(method.id)
 
           return (
