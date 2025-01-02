@@ -488,17 +488,20 @@ togglePlay: () => {
 
   reorderMethods: (startIndex: number, endIndex: number) => {
     set((state) => {
-      const sortedMethods = [...state.methods];  // Copie pour ne pas muter directement
-      const [removed] = sortedMethods.splice(startIndex, 1);
-      sortedMethods.splice(endIndex, 0, removed);
+      const sortedMethods = [...state.methods];
+      const activeMethods = sortedMethods.filter(m => m.active);
+      const inactiveMethods = sortedMethods.filter(m => !m.active);
       
-      // Mise à jour des ordres uniquement pour les méthodes sélectionnées
-      const updatedMethods = sortedMethods.map((method, index) => ({
-        ...method,
-        order: index
-      }));
-  
-      return { methods: updatedMethods };
+      const [removed] = activeMethods.splice(startIndex, 1);
+      activeMethods.splice(endIndex, 0, removed);
+      
+      // Update orders for active methods only
+      const reorderedMethods = [
+        ...activeMethods.map((m, i) => ({ ...m, order: i })),
+        ...inactiveMethods
+      ];
+      
+      return { methods: reorderedMethods };
     });
   },
 
