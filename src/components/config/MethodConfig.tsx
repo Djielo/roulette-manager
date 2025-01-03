@@ -20,7 +20,7 @@ const MethodConfig: FC<MethodConfigProps> = ({ methodId, isOpen, onClose }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
       <div className="bg-roulette-navy border-2 border-roulette-gold/30 p-6 rounded-lg w-96">
         <h3 className="text-xl text-roulette-gold mb-4">Configuration de la méthode</h3>
 

@@ -1,23 +1,32 @@
-import { FC } from 'react'
-import RouletteTable from '../roulette/RouletteTable'
-import ChasseMethod from './ChasseMethod'
-import { useRouletteStore } from '../../store/useRouletteStore'
+import { FC } from 'react';
+import RouletteTable from '../roulette/RouletteTable';
+import ChasseMethod from './ChasseMethod';
+import { useRouletteStore } from '../../store/useRouletteStore';
 
 const MethodView: FC = () => {
   const activeMethod = useRouletteStore(state =>
     state.methods.find(m => m.selected)
-  )
+  );
+
+  // Récupère les capitaux de la méthode active
+  const methodCapital = useRouletteStore(state =>
+    activeMethod ? state.methodCapital[activeMethod.id] : null
+  );
+
+  // Récupère le capital global pour l'évolution
+  const globalCapital = useRouletteStore(state => state.capital);
 
   const renderActiveMethod = () => {
-    if (!activeMethod) return null
+    if (!activeMethod) return null;
 
     switch (activeMethod.id) {
       case 'chasse':
-        return <ChasseMethod />
+        return <ChasseMethod />;
       default:
-        return null
+        return null;
     }
-  }
+  };
+
   return (
     <div className="h-full p-4 flex flex-col">
       {/* En-tête méthode */}
@@ -40,15 +49,21 @@ const MethodView: FC = () => {
           <div className="flex flex-col gap-2">
             <div className="bg-roulette-roi p-2 rounded-lg">
               <div className="text-sm text-roulette-gold/80">Capital Initial</div>
-              <div className="text-white">30.00€</div>
+              <div className="text-white">
+                {methodCapital ? `${methodCapital.initial.toFixed(2)}€` : 'N/A'}
+              </div>
             </div>
             <div className="bg-roulette-roi p-2 rounded-lg">
               <div className="text-sm text-roulette-gold/80">Capital Actuel</div>
-              <div className="text-white">30.00€</div>
+              <div className="text-white">
+                {methodCapital ? `${methodCapital.current.toFixed(2)}€` : 'N/A'}
+              </div>
             </div>
             <div className="bg-roulette-roi p-2 rounded-lg">
               <div className="text-sm text-roulette-gold/80">Évolution</div>
-              <div className="text-green-500">+0.00€ (0.0%)</div>
+              <div className={`${globalCapital.evolution.amount >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {globalCapital.evolution.amount >= 0 ? '+' : ''}{globalCapital.evolution.amount.toFixed(2)}€ ({globalCapital.evolution.percentage.toFixed(1)}%)
+              </div>
             </div>
           </div>
         </div>
@@ -59,7 +74,7 @@ const MethodView: FC = () => {
         <RouletteTable />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default MethodView
+export default MethodView;
