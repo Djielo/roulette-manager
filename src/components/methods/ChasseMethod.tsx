@@ -1,23 +1,22 @@
-import { FC } from 'react'
-import { useRouletteStore } from '../../store/useRouletteStore'
-import { ChasseMethodState } from '../../types/methods/chasse'
+import { FC } from 'react';
+import { useRouletteStore } from '../../store/useRouletteStore';
+import { ChasseMethodState } from '../../types/methods/chasse';
 
 const ChasseMethod: FC = () => {
-  // État et config de la méthode
-  const chasseState: ChasseMethodState = useRouletteStore(state => state.chasseState)
+  const chasseState: ChasseMethodState = useRouletteStore(state => state.chasseState);
   const {
     phase,
     remainingObservationTours,
     remainingPlayTours,
     numberCounts,
-  } = chasseState
+  } = chasseState;
 
-  // Helper pour obtenir la couleur selon le nombre de sorties
-  const getNumberColor = (count: number) => {
-    if (count < 2) return 'text-white'
-    if (count === 2) return 'text-green-300'
-    return 'text-red-500'
-  }
+  // Helper pour obtenir la couleur du bouton selon le nombre de sorties
+  const getButtonColor = (count: number) => {
+    if (count < 2) return 'bg-white text-black'; // Bouton blanc pour les numéros sortis moins de 2 fois
+    if (count === 2) return 'bg-green-400 text-black font-bold'; // Bouton vert pour les numéros sortis exactement 2 fois
+    return 'bg-red-500 text-black font-bold'; // Bouton rouge pour les numéros sortis plus de 2 fois
+  };
 
   return (
     <div className="p-4">
@@ -36,17 +35,17 @@ const ChasseMethod: FC = () => {
 
       {/* Affichage des numéros */}
       <div className="grid grid-cols-6 gap-2">
-        {history.length > 0 && Object.entries(numberCounts).map(([number, data]) => (
-          <div
+        {Object.entries(numberCounts).map(([number, data]) => (
+          <button
             key={number}
-            className={`${getNumberColor(data.count)} p-2 text-center border border-roulette-gold/30 rounded`}
+            className={`p-2 text-center border border-roulette-gold/30 rounded transition-colors duration-200 ${getButtonColor(data.count)}`}
           >
             {number}
-          </div>
+          </button>
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ChasseMethod
+export default ChasseMethod;
