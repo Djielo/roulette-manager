@@ -15,30 +15,49 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
   const {
     cyclicMode,
     sessionLocked,
-    toggleMethod,
     toggleCyclicMode,
     getMethodConfig,
     getSortedMethods,
     reorderMethods,
-  } = useRouletteStore()
+    pendingMethods,
+    setPendingMethods,
+  } = useRouletteStore();
 
-  const sortedMethods = getSortedMethods()
+  const sortedMethods = getSortedMethods();
+
+  const handleToggleMethod = (id: string) => {
+    const isSelected = pendingMethods.includes(id);
+    if (isSelected) {
+      setPendingMethods(pendingMethods.filter(methodId => methodId !== id));
+    } else {
+      setPendingMethods([...pendingMethods, id]);
+    }
+  };
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-
-    // Ne permettre que le déplacement entre méthodes sélectionnées
+  
     const sourceIndex = result.source.index;
     const destinationIndex = result.destination.index;
     const sourceMethod = sortedMethods[sourceIndex];
     const destinationMethod = sortedMethods[destinationIndex];
-
-    if (!sourceMethod.selected || !destinationMethod.selected) return;
-
+  
+    // Ne permettre que le déplacement entre méthodes sélectionnées
+    if (!pendingMethods.includes(sourceMethod.id) || !pendingMethods.includes(destinationMethod.id)) return;
+  
+    // Réorganise les méthodes sélectionnées dans pendingMethods
+    const updatedPendingMethods = [...pendingMethods];
+    const [removed] = updatedPendingMethods.splice(sourceIndex, 1);
+    updatedPendingMethods.splice(destinationIndex, 0, removed);
+  
+    // Met à jour l'ordre des méthodes dans le store
     reorderMethods(sourceIndex, destinationIndex);
-  }
+  
+    // Met à jour pendingMethods
+    setPendingMethods(updatedPendingMethods);
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -72,7 +91,7 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
                     key={`method-${method.id}`}
                     draggableId={`method-${method.id}`}
                     index={index}
-                    isDragDisabled={!method.selected || sessionLocked}
+                    isDragDisabled={!pendingMethods.includes(method.id) || sessionLocked}
                   >
                     {(provided, snapshot) => (
                       <div
@@ -81,9 +100,9 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
                         {...provided.dragHandleProps}
                         className={`
                           flex items-center justify-between py-2 px-3
-                          ${method.selected ? 'bg-roulette-roi/50' : ''}
+                          ${pendingMethods.includes(method.id) ? 'bg-roulette-roi/50' : ''}
                           ${snapshot.isDragging ? 'bg-roulette-roi shadow-lg' : ''}
-                          ${method.selected ? 'cursor-move' : ''}
+                          ${pendingMethods.includes(method.id) ? 'cursor-move' : ''}
                           rounded transition-colors
                         `}
                       >
@@ -91,8 +110,8 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
                           <input
                             type="checkbox"
                             disabled={sessionLocked}
-                            checked={method.selected}
-                            onChange={() => toggleMethod(method.id)}
+                            checked={pendingMethods.includes(method.id)}
+                            onChange={() => handleToggleMethod(method.id)}
                             className="rounded border-roulette-gold/30"
                           />
                           <span>{method.name}</span>
@@ -144,7 +163,7 @@ const MethodsModal: FC<MethodsModalProps> = ({ isOpen, onClose, setConfigMethodI
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default MethodsModal

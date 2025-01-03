@@ -68,7 +68,8 @@ interface StoreState {
   chasseState: ChasseMethodState;
   validationErrors: string[];
   sessionLocked: boolean;
-  getSortedMethods: () => Method[]
+  getSortedMethods: () => Method[];
+  pendingMethods: string[];
 }
 
 interface StoreActions {
@@ -93,6 +94,7 @@ interface StoreActions {
   updateChasseState: (number: RouletteNumber) => void
   validateStart: () => string[];
   reorderMethods: (startIndex: number, endIndex: number) => void;
+  setPendingMethods: (methods: string[]) => void;
 }
 
 const DEFAULT_CAPITAL: Capital = {
@@ -164,6 +166,7 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
   cyclicMode: true,
   validationErrors: [] as string[],
   sessionLocked: false,
+  pendingMethods: [],
   
 
   // Actions sur le capital
@@ -254,30 +257,33 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
   validateStart: () => {
     const errors: string[] = [];
     const state = get();
-
+  
     if (state.capital.initial <= 0) errors.push('Le capital initial doit être positif');
     if (state.timer.duration <= 0) errors.push('Le temps doit être positif');
     if (state.limits.maxLoss <= 0) errors.push('La perte maximale doit être positive');
     if (state.limits.targetProfit <= 0) errors.push('L\'objectif de gain doit être positif');
-
-    const selectedMethods = state.methods.filter((m: Method) => m.selected);
-    if (selectedMethods.length === 0) {
+  
+    // Utilise pendingMethods pour vérifier les méthodes sélectionnées
+    if (state.pendingMethods.length === 0) {
       errors.push('Sélectionnez au moins une méthode');
     } else {
-      const unconfiguredMethods = selectedMethods.filter((m: Method) => 
-        !state.methodConfigs[m.id]?.isConfigured
+      const unconfiguredMethods = state.pendingMethods.filter(methodId => 
+        !state.methodConfigs[methodId]?.isConfigured
       );
       if (unconfiguredMethods.length > 0) {
-        errors.push(`Configurez les méthodes suivantes : ${unconfiguredMethods.map((m: Method) => m.name).join(', ')}`);
+        errors.push(`Configurez les méthodes suivantes : ${unconfiguredMethods.map(methodId => {
+          const method = state.methods.find(m => m.id === methodId);
+          return method ? method.name : methodId;
+        }).join(', ')}`);
       }
     }
-
+  
     return errors;
   },
 
 // Modifier le togglePlay existant
 togglePlay: () => {
-  const state = get()
+  const state = get();
   if (!state.sessionLocked) {
     const errors = get().validateStart();
     if (errors.length > 0) {
@@ -285,40 +291,30 @@ togglePlay: () => {
       return;
     }
 
-    if (!state.activeMethodId) {
-      const firstMethod = state.methods.find(m => m.selected);
-      if (firstMethod) {
-        set({ activeMethodId: firstMethod.id });
-      }
+    // Transfère les méthodes en attente vers les méthodes actives
+    const updatedMethods = state.methods.map(method => ({
+      ...method,
+      selected: state.pendingMethods.includes(method.id),
+    }));
+
+    // Définit la première méthode sélectionnée comme active
+    const firstMethod = updatedMethods.find(m => m.selected);
+    if (firstMethod) {
+      set({ activeMethodId: firstMethod.id });
     }
 
-    const chasseMethod = state.methods.find(m => m.id === 'chasse' && m.selected)      
-    if (chasseMethod) {       
-      get().initializeChasse()
-    }
-
-    // Si historique vide, on vide les numéros
-    if (state.history.length === 0) {
-      set({
-        chasseState: {
-          ...DEFAULT_CHASSE_STATE,
-          numberCounts: {},
-          selectedNumbers: []
-        }
-      })
-    }
-
-    set({ 
+    set({
+      methods: updatedMethods,
       isPlaying: true,
       sessionLocked: true,
       validationErrors: [],
-      session: { 
-        isActive: true, 
+      session: {
+        isActive: true,
         hasExpired: false,
-        stoppedBy: null
-      }
-    })
-    get().startTimer()
+        stoppedBy: null,
+      },
+    });
+    get().startTimer();
   }
 },
 
@@ -384,13 +380,14 @@ togglePlay: () => {
       chasseState: {
         ...DEFAULT_CHASSE_STATE,
         numberCounts: {},
-        selectedNumbers: []
+        selectedNumbers: [],
       },
       stats: currentStats,
       methodConfigs: currentConfigs,
       cyclicMode: true,
       sessionLocked: false,
-    })
+      pendingMethods: [], // <-- Réinitialise pendingMethods
+    });
   },
 
   updateLimits: (updates: Partial<GameLimits>) => {
@@ -481,28 +478,38 @@ togglePlay: () => {
   getSortedMethods: () => {
     const state = get();
     return [...state.methods].sort((a, b) => {
-      if (a.selected === b.selected) return a.order - b.order; // Préserve l'ordre existant
-      return a.selected ? -1 : 1; // Méthodes sélectionnées en premier
+      const aSelected = state.pendingMethods.includes(a.id);
+      const bSelected = state.pendingMethods.includes(b.id);
+  
+      if (aSelected === bSelected) return a.order - b.order; // Préserve l'ordre existant
+      return aSelected ? -1 : 1; // Méthodes sélectionnées en premier
     });
   },
 
   reorderMethods: (startIndex: number, endIndex: number) => {
     set((state) => {
       const sortedMethods = [...state.methods];
-      const selectedMethods = sortedMethods.filter(m => m.selected);
-      const unselectedMethods = sortedMethods.filter(m => !m.selected);
-      
+      const pendingMethods = state.pendingMethods; // <-- Accède à pendingMethods via l'état
+  
+      const selectedMethods = sortedMethods.filter(m => pendingMethods.includes(m.id));
+      const unselectedMethods = sortedMethods.filter(m => !pendingMethods.includes(m.id));
+  
+      // Réorganise les méthodes sélectionnées
       const [removed] = selectedMethods.splice(startIndex, 1);
       selectedMethods.splice(endIndex, 0, removed);
-      
-      // Update orders for selected methods only
+  
+      // Met à jour l'ordre des méthodes
       const reorderedMethods = [
-        ...selectedMethods.map((m, i) => ({ ...m, order: i })),
-        ...unselectedMethods
+        ...selectedMethods.map((m, i) => ({ ...m, order: i })), // Réorganise les méthodes sélectionnées
+        ...unselectedMethods, // Garde les méthodes non sélectionnées à la fin
       ];
-      
+  
       return { methods: reorderedMethods };
     });
+  },
+
+  setPendingMethods: (methods: string[]) => {
+    set({ pendingMethods: methods });
   },
 
   // Actions pour la méthode Chasse

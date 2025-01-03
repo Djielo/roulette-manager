@@ -21,7 +21,8 @@ const MethodManager: FC = () => {
     togglePlay,
     reset,
     sessionLocked,
-    activeMethodId
+    activeMethodId,
+    pendingMethods,
   } = useRouletteStore()
 
   return (
@@ -134,10 +135,9 @@ const MethodManager: FC = () => {
           <div className="bg-roulette-roi/30 border border-roulette-gold/30 rounded-lg p-4 space-y-2">
             {getSortedMethods().map((method) => (
               <div key={method.id} className="flex items-center gap-2 text-sm text-white p-0">
-                <div className={`w-3 h-3 rounded-full border 
-         ${!method.selected ? 'border-red-500 bg-red-900/20' :
-                    method.id === activeMethodId ? 'border-green-500 bg-green-400' :
-                      'border-green-500 bg-green-900/20'}`}
+                <div className={`w-3 h-3 rounded-full border ${!pendingMethods.includes(method.id) ? 'border-red-500 bg-red-900/20' :
+                  method.id === activeMethodId ? 'border-green-500 bg-green-400' :
+                    'border-green-500 bg-green-900/20'}`}
                 />
                 <span>{method.name}</span>
               </div>
