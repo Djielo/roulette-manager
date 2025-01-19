@@ -97,6 +97,8 @@ interface StoreActions {
   setPendingMethods: (methods: string[]) => void;
   syncCapitals: (methodId: string) => void;
   switchToNextMethod: (currentMethodId: string, nextMethodId: string) => void;
+  deductBets: (methodId: string, bets: { amount: number }[]) => void;
+  decrementPlayTours: () => void;
 }
 
 const DEFAULT_CAPITAL: Capital = {
@@ -448,6 +450,35 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
     }));
   },
 
+  deductBets: (methodId, bets) => {
+    const totalBetAmount = bets.reduce((sum, bet) => sum + bet.amount, 0);
+
+    set((state) => {
+      const methodCapital = state.methodCapital[methodId];
+      if (!methodCapital) return state;
+
+      // Déduire du cam
+      const newMethodCapital = methodCapital.current - totalBetAmount;
+
+      // Déduire du CAM
+      const newGlobalCapital = state.capital.current - totalBetAmount;
+
+      return {
+        methodCapital: {
+          ...state.methodCapital,
+          [methodId]: {
+            ...methodCapital,
+            current: newMethodCapital,
+          },
+        },
+        capital: {
+          ...state.capital,
+          current: newGlobalCapital,
+        },
+      };
+    });
+  },
+
   updateMethodConfig: (methodId: string, config: Partial<MethodConfig>) => {
     const currentConfig = get().methodConfigs[methodId] || DEFAULT_METHOD_CONFIG;
     const newConfig = {
@@ -552,6 +583,21 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
     const state = { ...get().chasseState };
     chasseActions.addNumber(state, number);
     set({ chasseState: state });
+  },
+
+  decrementPlayTours: () => {
+    set((state) => {
+      const chasseState = state.chasseState;
+      if (chasseState.phase === 'play' && chasseState.remainingPlayTours > 0) {
+        return {
+          chasseState: {
+            ...chasseState,
+            remainingPlayTours: chasseState.remainingPlayTours - 1,
+          },
+        };
+      }
+      return state;
+    });
   },
 }));
 

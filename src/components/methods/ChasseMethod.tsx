@@ -1,9 +1,13 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { useRouletteStore } from '../../store/useRouletteStore';
 import { ChasseMethodState } from '../../types/methods/chasse';
 
 const ChasseMethod: FC = () => {
   const chasseState: ChasseMethodState = useRouletteStore(state => state.chasseState);
+  const { deductBets } = useRouletteStore();
+  const activeMethod = useRouletteStore(state => state.methods.find(m => m.selected));
+  const config = useRouletteStore(state => state.methodConfigs['chasse']);
+
   const {
     phase,
     remainingObservationTours,
@@ -12,17 +16,32 @@ const ChasseMethod: FC = () => {
     selectedNumbers,
   } = chasseState;
 
+  // Déduire les mises à chaque tour de la phase de jeu
+  useEffect(() => {
+    if (phase === 'play') {
+      const bets = selectedNumbers.map(number => ({
+        type: 'number' as const,
+        value: number,
+        amount: config?.betUnit || 0.2,
+      }));
+  
+      if (activeMethod) {
+        deductBets(activeMethod.id, bets);
+      }
+    }
+  }, [phase, remainingPlayTours, selectedNumbers, activeMethod, config, deductBets]);
+
   // Helper pour obtenir la couleur du bouton selon le nombre de sorties
   const getButtonColor = (count: number) => {
-    if (count < 2) return 'bg-white text-black'; // Bouton blanc pour les numéros sortis moins de 2 fois
-    if (count === 2) return 'bg-green-400 text-black font-bold'; // Bouton vert pour les numéros sortis exactement 2 fois
-    return 'bg-red-500 text-black font-bold'; // Bouton rouge pour les numéros sortis plus de 2 fois
+    if (count < 2) return 'bg-white text-black';
+    if (count === 2) return 'bg-green-400 text-black font-bold';
+    return 'bg-red-500 text-black font-bold';
   };
 
   // Détermine les numéros à afficher en fonction de la phase
   const numbersToDisplay = phase === 'observation'
-    ? Object.entries(numberCounts).map(([number]) => parseInt(number)) // Affiche tous les numéros pendant l'observation
-    : selectedNumbers.slice(0, 3); // Affiche uniquement les numéros éligibles pendant le jeu
+    ? Object.entries(numberCounts).map(([number]) => parseInt(number))
+    : selectedNumbers.slice(0, 3);
 
   return (
     <div className="p-4">
