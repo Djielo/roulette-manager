@@ -1,11 +1,13 @@
 import { FC } from 'react';
 import RouletteTable from '../roulette/RouletteTable';
 import ChasseMethod from './ChasseMethod';
+import SDCMethod from './SDCMethod'
 import { useRouletteStore } from '../../store/useRouletteStore';
 
 const MethodView: FC = () => {
+  const activeMethodId = useRouletteStore(state => state.activeMethodId); // Récupérer activeMethodId
   const activeMethod = useRouletteStore(state =>
-    state.methods.find(m => m.selected)
+    state.methods.find(m => m.id === activeMethodId) // Trouver la méthode active
   );
 
   // Récupère les capitaux de la méthode active
@@ -22,13 +24,15 @@ const MethodView: FC = () => {
     switch (activeMethod.id) {
       case 'chasse':
         return <ChasseMethod />;
+      case 'sdc':
+        return <SDCMethod />; // Assurez-vous d'avoir un composant SDCMethod
       default:
         return null;
     }
   };
 
   return (
-    <div className="h-full p-4 flex flex-col">
+    <div key={activeMethodId} className="h-full p-4 flex flex-col"> {/* Utilisez activeMethodId comme clé */}
       {/* En-tête méthode */}
       <div className="mb-4 border-b border-roulette-gold/30 pb-4">
         <div className="text-roulette-gold text-xl">

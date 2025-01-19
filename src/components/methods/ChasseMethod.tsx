@@ -4,9 +4,11 @@ import { ChasseMethodState } from '../../types/methods/chasse';
 
 const ChasseMethod: FC = () => {
   const chasseState: ChasseMethodState = useRouletteStore(state => state.chasseState);
-  const { deductBets } = useRouletteStore();
+  const { deductBets, switchToNextMethod } = useRouletteStore();
   const activeMethod = useRouletteStore(state => state.methods.find(m => m.selected));
   const config = useRouletteStore(state => state.methodConfigs['chasse']);
+  const pendingMethods = useRouletteStore(state => state.pendingMethods);
+  const cyclicMode = useRouletteStore(state => state.cyclicMode);
 
   const {
     phase,
@@ -16,6 +18,20 @@ const ChasseMethod: FC = () => {
     selectedNumbers,
   } = chasseState;
 
+  // Logs pour suivre la phase de jeu
+  useEffect(() => {
+    if (phase === 'play') {
+      console.log('Phase de jeu démarrée');
+    } else if (phase === 'observation') {
+      console.log('Phase d\'observation démarrée');
+    }
+  }, [phase]);
+
+  // Logs pour suivre remainingPlayTours
+  useEffect(() => {
+    console.log(`Tours de jeu restants : ${remainingPlayTours}`);
+  }, [remainingPlayTours]);
+
   // Déduire les mises à chaque tour de la phase de jeu
   useEffect(() => {
     if (phase === 'play') {
@@ -24,12 +40,40 @@ const ChasseMethod: FC = () => {
         value: number,
         amount: config?.betUnit || 0.2,
       }));
-  
+
       if (activeMethod) {
         deductBets(activeMethod.id, bets);
       }
     }
   }, [phase, remainingPlayTours, selectedNumbers, activeMethod, config, deductBets]);
+
+  // Gérer la fin de la phase de jeu
+  useEffect(() => {
+    if (phase === 'play' && remainingPlayTours === 0 && activeMethod) {
+      console.log('Fin de la phase de jeu détectée');
+      const currentMethodId = activeMethod.id;
+
+      // Trouver la prochaine méthode
+      let nextMethodId: string | null = null;
+      if (cyclicMode && pendingMethods.length === 1) {
+        console.log('Mode cyclique activé avec une seule méthode sélectionnée');
+        nextMethodId = currentMethodId;
+      } else {
+        console.log('Recherche de la méthode suivante');
+        const activeMethodIndex = pendingMethods.indexOf(currentMethodId);
+        const nextMethodIndex = (activeMethodIndex + 1) % pendingMethods.length;
+        nextMethodId = pendingMethods[nextMethodIndex];
+      }
+
+      // Passer à la méthode suivante
+      if (nextMethodId) {
+        console.log(`Passage à la méthode suivante : ${nextMethodId}`);
+        switchToNextMethod(currentMethodId, nextMethodId);
+      } else {
+        console.log('Aucune méthode suivante trouvée');
+      }
+    }
+  }, [phase, remainingPlayTours, activeMethod, pendingMethods, cyclicMode, switchToNextMethod]);
 
   // Helper pour obtenir la couleur du bouton selon le nombre de sorties
   const getButtonColor = (count: number) => {

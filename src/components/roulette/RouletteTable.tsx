@@ -32,21 +32,21 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
   }
 
   const handleNumberClick = (number: RouletteNumber) => {
-    if (!isPlaying) {
-      useRouletteStore.setState({
-        validationErrors: ['Vous devez démarrer le jeu avant de pouvoir jouer'],
-      });
-      return;
-    }
-  
-    // Décrémenter remainingPlayTours pendant la phase de jeu
-    if (activeMethod?.id === 'chasse' && chasseState.phase === 'play') {
-      useRouletteStore.getState().decrementPlayTours();
-    }
-  
-    addSpin(number);
-    onNumberClick?.(number);
-  };
+  if (!isPlaying) {
+    useRouletteStore.setState({
+      validationErrors: ['Vous devez démarrer le jeu avant de pouvoir jouer'],
+    });
+    return;
+  }
+
+  // Décrémenter remainingPlayTours pendant la phase de jeu
+  if (activeMethod?.id === 'chasse' && chasseState.phase === 'play') {
+    useRouletteStore.getState().decrementPlayTours();
+  }
+
+  addSpin(number);
+  onNumberClick?.(number);
+};
 
   const renderNumber = (number: number) => (
     <div

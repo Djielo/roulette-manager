@@ -97,8 +97,9 @@ interface StoreActions {
   setPendingMethods: (methods: string[]) => void;
   syncCapitals: (methodId: string) => void;
   switchToNextMethod: (currentMethodId: string, nextMethodId: string) => void;
-  deductBets: (methodId: string, bets: { amount: number }[]) => void;
+  deductBets: (methodId: string, bets: { amount: number }[]) => void;  
   decrementPlayTours: () => void;
+  initializeMethod: (methodId: string) => void;
 }
 
 const DEFAULT_CAPITAL: Capital = {
@@ -554,10 +555,11 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
   },
 
   switchToNextMethod: (currentMethodId: string, nextMethodId: string) => {
-    set((state: StoreState) => {
+    console.log(`Transition de ${currentMethodId} à ${nextMethodId}`);
+    set((state) => {
       const currentMethodCapital = state.methodCapital[currentMethodId];
       if (!currentMethodCapital) return state;
-
+  
       return {
         methodCapital: {
           ...state.methodCapital,
@@ -566,8 +568,12 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
             current: state.capital.current,
           },
         },
+        activeMethodId: nextMethodId,
       };
     });
+  
+    // Initialiser la nouvelle méthode
+    get().initializeMethod(nextMethodId);
   },
 
   initializeChasse: () => {
@@ -589,13 +595,35 @@ export const useRouletteStore = create<StoreState & StoreActions>((set, get) => 
     set((state) => {
       const chasseState = state.chasseState;
       if (chasseState.phase === 'play' && chasseState.remainingPlayTours > 0) {
+        const newRemainingPlayTours = chasseState.remainingPlayTours - 1;
+  
         return {
           chasseState: {
             ...chasseState,
-            remainingPlayTours: chasseState.remainingPlayTours - 1,
+            remainingPlayTours: newRemainingPlayTours,
           },
         };
       }
+      return state;
+    });
+  },
+
+  initializeMethod: (methodId) => {
+    set((state) => {
+      if (methodId === 'chasse') {
+        return {
+          chasseState: {
+            phase: 'observation',
+            observationCount: 0,
+            playCount: 0,
+            remainingObservationTours: 24,
+            remainingPlayTours: 12,
+            numberCounts: {},
+            selectedNumbers: [],
+          },
+        };
+      }
+      // Ajouter d'autres initialisations pour d'autres méthodes si nécessaire
       return state;
     });
   },
