@@ -1,8 +1,8 @@
 import { FC } from 'react'
-import { useRouletteStore } from '../../store/useRouletteStore'
+import { useCommonMethodsStore } from '../../store/useCommonMethodsStore'
 
 const HistoryDisplay: FC = () => {
-  const history = useRouletteStore(state => state.history)
+  const history = useCommonMethodsStore(state => state.history)
 
   const renderNumber = (number: number) => {
     const isRed = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36].includes(number)

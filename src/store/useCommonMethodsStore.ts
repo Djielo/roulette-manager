@@ -12,7 +12,7 @@ interface SpinHistory {
   methodId: string | null;
 }
 
-interface StoreState {
+export interface StoreState {
   history: SpinHistory[];
   stats: Record<string, MethodStats>;
   methods: Method[];
@@ -21,7 +21,7 @@ interface StoreState {
   pendingMethods: string[];
 }
 
-interface StoreActions {
+export interface StoreActions {
   addSpin: (number: RouletteNumber) => void;
   setActiveMethod: (id: string | null) => void;
   toggleCyclicMode: () => void;

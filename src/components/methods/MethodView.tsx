@@ -3,20 +3,14 @@ import RouletteTable from '../roulette/RouletteTable';
 import ChasseMethod from './ChasseMethod';
 import SDCMethod from './SDCMethod'
 import { useRouletteStore } from '../../store/useRouletteStore';
+import type { Method } from '../../types/methodsTypes';
 
 const MethodView: FC = () => {
-  const activeMethodId = useRouletteStore(state => state.activeMethodId); // Récupérer activeMethodId
-  const activeMethod = useRouletteStore(state =>
-    state.methods.find(m => m.id === activeMethodId) // Trouver la méthode active
-  );
-
-  // Récupère les capitaux de la méthode active
-  const methodCapital = useRouletteStore(state =>
-    activeMethod ? state.methodCapital[activeMethod.id] : null
-  );
-
-  // Récupère le capital global pour l'évolution
-  const globalCapital = useRouletteStore(state => state.capital);
+  const store = useRouletteStore();
+  const activeMethodId = store.activeMethodId;
+  const activeMethod = store.methods.find((m: Method) => m.id === activeMethodId);
+  const methodCapital = activeMethod ? store.methodCapital[activeMethod.id] : null;
+  const globalCapital = store.capital;
 
   const renderActiveMethod = () => {
     if (!activeMethod) return null;
@@ -54,19 +48,21 @@ const MethodView: FC = () => {
             <div className="bg-roulette-roi p-2 rounded-lg">
               <div className="text-sm text-roulette-gold/80">Capital Initial</div>
               <div className="text-white">
-                {methodCapital ? `${methodCapital.initial.toFixed(2)}€` : 'N/A'}
+                {methodCapital ? `${typeof methodCapital.initial === 'number' ? methodCapital.initial.toFixed(2) : '0.00'}€` : 'N/A'}
               </div>
             </div>
             <div className="bg-roulette-roi p-2 rounded-lg">
               <div className="text-sm text-roulette-gold/80">Capital Actuel</div>
               <div className="text-white">
-                {methodCapital ? `${methodCapital.current.toFixed(2)}€` : 'N/A'}
+                {methodCapital ? `${typeof methodCapital.current === 'number' ? methodCapital.current.toFixed(2) : '0.00'}€` : 'N/A'}
               </div>
             </div>
             <div className="bg-roulette-roi p-2 rounded-lg">
               <div className="text-sm text-roulette-gold/80">Évolution</div>
-              <div className={`${globalCapital.evolution.amount >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {globalCapital.evolution.amount >= 0 ? '+' : ''}{globalCapital.evolution.amount.toFixed(2)}€ ({globalCapital.evolution.percentage.toFixed(1)}%)
+              <div className={`${globalCapital?.evolution?.amount >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {globalCapital?.evolution?.amount >= 0 ? '+' : ''}
+                {globalCapital?.evolution?.amount?.toFixed(2) ?? '0.00'}€
+                ({globalCapital?.evolution?.percentage?.toFixed(1) ?? '0.0'}%)
               </div>
             </div>
           </div>

@@ -1,6 +1,10 @@
 import { create } from 'zustand';
+import { useMethodCapitalStore } from './useMethodCapitalStore';
+import { useCommonMethodsStore } from './useCommonMethodsStore';
+import { useChasseStore } from './useChasseStore';
+import { useMethodManagerStore } from './useMethodManagerStore';
 
-interface Capital {
+export interface Capital {
   initial: number;
   current: number;
   evolution: {
@@ -9,34 +13,34 @@ interface Capital {
   };
 }
 
-interface TimerState {
+export interface TimerState {
   duration: number;
   remaining: number;
   isRunning: boolean;
 }
 
-interface GameLimits {
+export interface GameLimits {
   maxLoss: number;
   targetProfit: number;
   betUnit: number;
 }
 
-interface SessionState {
+export interface SessionState {
   isActive: boolean;
   hasExpired: boolean;
   stoppedBy: 'timer' | 'maxLoss' | 'targetProfit' | null;
 }
 
-interface StoreState {
+export interface StoreState {
   capital: Capital;
   timer: TimerState;
   limits: GameLimits;
   session: SessionState;
   sessionLocked: boolean;
-  isPlaying: boolean; // Ajoutez cette ligne
+  isPlaying: boolean;
 }
 
-interface StoreActions {
+export interface StoreActions {
   setCapital: (type: 'initial' | 'current', value: string | number) => void;
   setTimer: (value: number) => void;
   startTimer: () => void;
@@ -80,7 +84,7 @@ export const useAppManagerStore = create<StoreState & StoreActions>((set, get) =
   limits: DEFAULT_LIMITS,
   session: DEFAULT_SESSION,
   sessionLocked: false,
-  isPlaying: false, // Ajoutez cette ligne
+  isPlaying: false,
 
   setCapital: (type, value) => {
     set((state) => {
@@ -128,7 +132,7 @@ export const useAppManagerStore = create<StoreState & StoreActions>((set, get) =
       if (stopReason) {
         clearInterval(interval);
         set({
-          isPlaying: false, // Assurez-vous que cette ligne est correcte
+          isPlaying: false,
           session: {
             isActive: false,
             hasExpired: true,
@@ -165,8 +169,11 @@ export const useAppManagerStore = create<StoreState & StoreActions>((set, get) =
   togglePlay: () => {
     const state = get();
     if (!state.sessionLocked) {
+      const pendingMethods = useCommonMethodsStore.getState().pendingMethods;
+      const firstMethodId = pendingMethods[0];
+
       set({
-        isPlaying: true, // Assurez-vous que cette ligne est correcte
+        isPlaying: true,
         sessionLocked: true,
         session: {
           isActive: true,
@@ -174,6 +181,16 @@ export const useAppManagerStore = create<StoreState & StoreActions>((set, get) =
           stoppedBy: null,
         },
       });
+
+      if (firstMethodId) {
+        useMethodManagerStore.getState().initializeMethod(firstMethodId);
+        useMethodCapitalStore.getState().initializeMethodCapital(firstMethodId);
+        useCommonMethodsStore.setState(state => ({
+          ...state,
+          activeMethodId: firstMethodId,
+        }));
+      }
+
       get().startTimer();
     }
   },
@@ -187,5 +204,27 @@ export const useAppManagerStore = create<StoreState & StoreActions>((set, get) =
       isPlaying: false,
       sessionLocked: false,
     });
+
+    useCommonMethodsStore.setState(state => ({
+      ...state,
+      activeMethodId: null,
+      pendingMethods: [],
+      history: [],
+      methods: state.methods.map(method => ({
+        ...method,
+        selected: false,
+      })),
+      stats: state.stats,
+    }));
+
+    useMethodCapitalStore.setState({
+      methodCapital: {},
+    });
+
+    useMethodManagerStore.setState({
+      activeMethodId: null,
+    });
+
+    useChasseStore.getState().initializeChasse();
   },
 }));

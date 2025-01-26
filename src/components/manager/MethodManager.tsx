@@ -4,6 +4,7 @@ import { useRouletteStore } from '../../store/useRouletteStore'
 import HistoryDisplay from '../history/HistoryDisplay'
 import MethodConfig from '../config/MethodConfig'
 import MethodsModal from '../modal/MethodsModal'
+import type { Method } from '../../types/methodsTypes'
 
 const MethodManager: FC = () => {
   const [activeTab, setActiveTab] = useState<'history' | 'stats' | 'trends'>('history')
@@ -133,7 +134,7 @@ const MethodManager: FC = () => {
             <h3 className="font-semibold mb-2 text-roulette-gold">Gestion de la session</h3>
           </div>
           <div className="bg-roulette-roi/30 border border-roulette-gold/30 rounded-lg p-4 space-y-2">
-            {getSortedMethods().map((method) => (
+            {getSortedMethods().map((method: Method) => (
               <div key={method.id} className="flex items-center gap-2 text-sm text-white p-0">
                 <div className={`w-3 h-3 rounded-full border ${!pendingMethods.includes(method.id) ? 'border-red-500 bg-red-900/20' :
                   method.id === activeMethodId ? 'border-green-500 bg-green-400' :

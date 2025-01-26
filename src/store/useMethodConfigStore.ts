@@ -1,16 +1,16 @@
 // src/store/useMethodConfigStore.ts
 import { create } from 'zustand';
 
-interface MethodConfig {
+export interface MethodConfig {
   betUnit: number;
   isConfigured: boolean;
 }
 
-interface StoreState {
+export interface StoreState {
   methodConfigs: Record<string, MethodConfig>;
 }
 
-interface StoreActions {
+export interface StoreActions {
   updateMethodConfig: (methodId: string, config: Partial<MethodConfig>) => void;
   getMethodConfig: (methodId: string) => MethodConfig | undefined;
 }

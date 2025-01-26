@@ -1,14 +1,33 @@
 import { FC, useEffect } from 'react';
 import { useRouletteStore } from '../../store/useRouletteStore';
 import { ChasseMethodState } from '../../types/methods/chasse';
+import { useChasseStore } from '../../store/useChasseStore';
+import { useMethodCapitalStore } from '../../store/useMethodCapitalStore';
+import { BetPosition, RouletteNumber } from '../../types/roulette';
+import type { CombinedStoreState } from '../../types/stores';
+
+export interface ChasseStore {
+  chasseState: ChasseMethodState;
+  initializeChasse: () => void;
+  updateChasseState: (number: RouletteNumber) => void;
+  decrementPlayTours: () => void;
+}
 
 const ChasseMethod: FC = () => {
-  const chasseState: ChasseMethodState = useRouletteStore(state => state.chasseState);
-  const { deductBets, switchToNextMethod } = useRouletteStore();
-  const activeMethod = useRouletteStore(state => state.methods.find(m => m.selected));
-  const config = useRouletteStore(state => state.methodConfigs['chasse']);
-  const pendingMethods = useRouletteStore(state => state.pendingMethods);
-  const cyclicMode = useRouletteStore(state => state.cyclicMode);
+  // Utilisation directe de useChasseStore pour l'état de la chasse
+  const chasseState = useChasseStore().chasseState;
+
+  // Extraction des méthodes du store roulette combiné avec le type correct
+  const store = useRouletteStore() as CombinedStoreState;
+  const activeMethod = store.methods.find(m => m.selected);
+  const config = store.methodConfigs['chasse'];
+  const pendingMethods = store.pendingMethods;
+  const cyclicMode = store.cyclicMode;
+  const { deductBets, switchToNextMethod } = store;
+
+  const methodCapital = useMethodCapitalStore(state => 
+    activeMethod?.id ? state.methodCapital[activeMethod.id] : null
+  );
 
   const {
     phase,
@@ -35,13 +54,13 @@ const ChasseMethod: FC = () => {
   // Déduire les mises à chaque tour de la phase de jeu
   useEffect(() => {
     if (phase === 'play') {
-      const bets = selectedNumbers.map(number => ({
-        type: 'number' as const,
+      const bets: BetPosition[] = selectedNumbers.map(number => ({
+        type: 'number',
         value: number,
-        amount: config?.betUnit || 0.2,
+        amount: config?.betUnit ?? 0.2,
       }));
 
-      if (activeMethod) {
+      if (activeMethod?.id) {
         deductBets(activeMethod.id, bets);
       }
     }
@@ -49,11 +68,10 @@ const ChasseMethod: FC = () => {
 
   // Gérer la fin de la phase de jeu
   useEffect(() => {
-    if (phase === 'play' && remainingPlayTours === 0 && activeMethod) {
+    if (phase === 'play' && remainingPlayTours === 0 && activeMethod?.id) {
       console.log('Fin de la phase de jeu détectée');
       const currentMethodId = activeMethod.id;
 
-      // Trouver la prochaine méthode
       let nextMethodId: string | null = null;
       if (cyclicMode && pendingMethods.length === 1) {
         console.log('Mode cyclique activé avec une seule méthode sélectionnée');
@@ -65,7 +83,6 @@ const ChasseMethod: FC = () => {
         nextMethodId = pendingMethods[nextMethodIndex];
       }
 
-      // Passer à la méthode suivante
       if (nextMethodId) {
         console.log(`Passage à la méthode suivante : ${nextMethodId}`);
         switchToNextMethod(currentMethodId, nextMethodId);
@@ -89,7 +106,7 @@ const ChasseMethod: FC = () => {
 
   return (
     <div className="p-4">
-      {/* En-tête avec phase et tours restants */}
+      {/* En-tête avec phase, tours restants et capital */}
       <div className="mb-4 text-center">
         <div className="text-roulette-gold text-xl">
           Phase : {phase === 'observation' ? 'Observation' : 'Jeu'}
@@ -100,6 +117,16 @@ const ChasseMethod: FC = () => {
             : `${remainingPlayTours} tours de jeu restants`
           }
         </div>
+        {methodCapital && (
+          <div className="mt-2">
+            <div className="text-white/80">
+              Capital initial : {methodCapital.initial.toFixed(2)}€
+            </div>
+            <div className="text-white/80">
+              Capital actuel : {methodCapital.current.toFixed(2)}€
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Affichage des numéros */}

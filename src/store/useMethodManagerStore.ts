@@ -2,12 +2,13 @@
 import { create } from 'zustand';
 import { useMethodCapitalStore } from './useMethodCapitalStore';
 import { useChasseStore } from './useChasseStore';
+import { useCommonMethodsStore } from './useCommonMethodsStore';
 
-interface StoreState {
+export interface StoreState {
   activeMethodId: string | null;
 }
 
-interface StoreActions {
+export interface StoreActions {
   switchToNextMethod: (currentMethodId: string, nextMethodId: string) => void;
   initializeMethod: (methodId: string) => void;
 }
@@ -29,6 +30,14 @@ export const useMethodManagerStore = create<StoreState & StoreActions>((set, get
   },
 
   initializeMethod: (methodId) => {
+    // Synchroniser l'état actif dans tous les stores
+    set({ activeMethodId: methodId });
+    useCommonMethodsStore.setState(state => ({
+      ...state,
+      activeMethodId: methodId
+    }));
+    
+    // Initialiser la méthode spécifique
     if (methodId === 'chasse') {
       useChasseStore.getState().initializeChasse();
     }

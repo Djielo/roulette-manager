@@ -1,6 +1,8 @@
 import { FC } from 'react'
 import { RouletteNumber } from '../../types/roulette'
 import { useRouletteStore } from '../../store/useRouletteStore'
+import { useCommonMethodsStore } from '../../store/useCommonMethodsStore'
+import { useChasseStore } from '../../store/useChasseStore'
 import BetsOverlay from './BetsOverlay'
 
 interface RouletteTableProps {
@@ -10,11 +12,16 @@ interface RouletteTableProps {
 }
 
 const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
-  const activeMethod = useRouletteStore(state => state.methods.find(m => m.selected))
-  const chasseState = useRouletteStore(state => state.chasseState)
-  const config = useRouletteStore(state => state.methodConfigs['chasse'])
-  const isPlaying = useRouletteStore(state => state.isPlaying)
-  const addSpin = useRouletteStore(state => state.addSpin)
+  const { 
+    methods,
+    chasseState,
+    methodConfigs,
+    isPlaying
+  } = useRouletteStore()
+  
+  const activeMethod = methods.find(m => m.selected)
+  const config = methodConfigs['chasse']
+  const addSpin = useCommonMethodsStore(state => state.addSpin)
 
   const getBets = () => {
     if (!activeMethod) return []
@@ -32,21 +39,16 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
   }
 
   const handleNumberClick = (number: RouletteNumber) => {
-  if (!isPlaying) {
-    useRouletteStore.setState({
-      validationErrors: ['Vous devez démarrer le jeu avant de pouvoir jouer'],
-    });
-    return;
-  }
+    if (!isPlaying) return;
 
-  // Décrémenter remainingPlayTours pendant la phase de jeu
-  if (activeMethod?.id === 'chasse' && chasseState.phase === 'play') {
-    useRouletteStore.getState().decrementPlayTours();
-  }
+    // Décrémenter remainingPlayTours pendant la phase de jeu
+    if (activeMethod?.id === 'chasse' && chasseState.phase === 'play') {
+      useChasseStore.getState().decrementPlayTours();
+    }
 
-  addSpin(number);
-  onNumberClick?.(number);
-};
+    addSpin(number);
+    onNumberClick?.(number);
+  };
 
   const renderNumber = (number: number) => (
     <div

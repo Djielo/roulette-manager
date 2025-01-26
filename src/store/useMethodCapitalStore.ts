@@ -3,19 +3,20 @@ import { create } from 'zustand';
 import { MethodCapital } from '../types/manager';
 import { useAppManagerStore } from './useAppManagerStore';
 
-interface StoreState {
+export interface StoreState {
   methodCapital: Record<string, MethodCapital>;
 }
 
-interface StoreActions {
+export interface StoreActions {
   initializeMethodCapital: (methodId: string) => void;
   updateMethodCapital: (methodId: string, current: number) => void;
   validateMethodCapital: (methodId: string, final: number) => void;
   deductBets: (methodId: string, bets: { amount: number }[]) => void;
   syncCapitals: (methodId: string) => void;
+  reset: () => void;
 }
 
-export const useMethodCapitalStore = create<StoreState & StoreActions>((set, get) => ({
+export const useMethodCapitalStore = create<StoreState & StoreActions>((set) => ({
   methodCapital: {},
 
   initializeMethodCapital: (methodId) => {
@@ -64,8 +65,7 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>((set, get
       if (!methodCapital) return state;
 
       const newMethodCapital = methodCapital.current - totalBetAmount;
-      const newGlobalCapital = useAppManagerStore.getState().capital.current - totalBetAmount;
-
+      
       return {
         methodCapital: {
           ...state.methodCapital,
@@ -95,5 +95,9 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>((set, get
         },
       };
     });
+  },
+
+  reset: () => {
+    set({ methodCapital: {} });
   },
 }));

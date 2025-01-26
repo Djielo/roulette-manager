@@ -3,11 +3,11 @@ import { RouletteNumber } from '../types/roulette';
 import { ChasseMethodState, chasseActions } from '../types/methods/chasse';
 import { useCommonMethodsStore } from './useCommonMethodsStore';
 
-interface StoreState {
+export interface StoreState {
   chasseState: ChasseMethodState;
 }
 
-interface StoreActions {
+export interface StoreActions {
   initializeChasse: () => void;
   updateChasseState: (number: RouletteNumber) => void;
   decrementPlayTours: () => void;
