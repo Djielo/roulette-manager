@@ -51,7 +51,8 @@ export interface ChasseMethodState {
     if (state.phase === 'observation' && state.observationCount < 24) {
       state.observationCount++
       state.remainingObservationTours--
- 
+
+      // Ajoute le numéro cliqué dans les counts
       if (!state.numberCounts[number]) {
         state.numberCounts[number] = {
           count: 1,
@@ -60,9 +61,11 @@ export interface ChasseMethodState {
       } else {
         state.numberCounts[number].count++
       }
- 
+
+      // Met à jour les numéros sélectionnés
       chasseActions.updateSelectedNumbers(state)
- 
+
+      // Passe à la phase de jeu si l'observation est terminée
       if (state.observationCount === 24) {
         if (state.selectedNumbers.length > 0) {
           state.phase = 'play'

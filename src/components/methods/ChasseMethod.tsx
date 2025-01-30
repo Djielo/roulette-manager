@@ -130,15 +130,38 @@ const ChasseMethod: FC = () => {
       </div>
 
       {/* Affichage des numéros */}
-      <div className="grid grid-cols-6 gap-2">
-        {numbersToDisplay.map((number) => (
-          <button
-            key={number}
-            className={`p-2 text-center border border-roulette-gold/30 rounded transition-colors duration-200 font-bold ${getButtonColor(numberCounts[number]?.count || 0)}`}
-          >
-            {number}
-          </button>
-        ))}
+      <div className="space-y-4">
+        <div>
+          <div className="text-white/70 mb-2">Numéros observés :</div>
+          <div className="grid grid-cols-6 gap-2">
+            {numbersToDisplay.map((number) => (
+              <button
+                key={number}
+                className={`p-2 text-center border border-roulette-gold/30 rounded transition-colors duration-200 font-bold ${getButtonColor(numberCounts[number]?.count || 0)}`}
+              >
+                {number}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {phase === 'observation' && (
+          <div>
+            <div className="text-white/70 mb-2">Numéros cliqués :</div>
+            <div className="grid grid-cols-6 gap-2">
+              {Object.entries(numberCounts)
+                .filter(([_, data]) => data.count > 0)
+                .map(([number]) => (
+                  <button
+                    key={number}
+                    className="p-2 text-center border border-roulette-gold/30 rounded bg-blue-500 text-white font-bold"
+                  >
+                    {number}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

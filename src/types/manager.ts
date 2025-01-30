@@ -19,6 +19,7 @@ export interface MethodStats {
   wins: number;
   losses: number;
   profit: number;
+  spinsCount: number;
 }
 
 export interface MethodCapital {
