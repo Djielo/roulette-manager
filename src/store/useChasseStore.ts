@@ -21,6 +21,7 @@ const DEFAULT_CHASSE_STATE: ChasseMethodState = {
   remainingPlayTours: 12,
   numberCounts: {},
   selectedNumbers: [],
+  displayedNumbers: []
 };
 
 export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
@@ -28,7 +29,10 @@ export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
 
   initializeChasse: () => {
     const history = useCommonMethodsStore.getState().history;
-    const state = { ...DEFAULT_CHASSE_STATE };
+    const currentState = get().chasseState;
+    const state = currentState.phase === 'finished' ? 
+      { ...DEFAULT_CHASSE_STATE } : 
+      { ...currentState, displayedNumbers: [] };
     if (history.length > 0) {
       chasseActions.analyzeHistory(state, history.map((h) => h.number));
     }
@@ -38,7 +42,13 @@ export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
   updateChasseState: (number: RouletteNumber) => {
     const state = { ...get().chasseState };
     chasseActions.addNumber(state, number);
-    set({ chasseState: state });
+    // Mettre à jour à la fois l'historique et l'affichage
+    set({ 
+      chasseState: {
+        ...state,
+        displayedNumbers: [...state.displayedNumbers, number]
+      }
+    });
   },
 
   decrementPlayTours: () => {

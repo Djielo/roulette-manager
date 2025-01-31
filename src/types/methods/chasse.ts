@@ -12,10 +12,12 @@ export interface ChasseMethodState {
     firstSeen: number                          // Premier tour où il est apparu
   }>
   selectedNumbers: number[]                    // Numéros retenus pour le jeu (max 3)
+  displayedNumbers: number[]                   // Numéros à afficher dans l'interface
  }
- 
- // Fonctions pour gérer la méthode
- export const chasseActions = {
+
+
+// Fonctions pour gérer la méthode
+export const chasseActions = {
   // Analyse l'historique des numéros au démarrage
   analyzeHistory: (state: ChasseMethodState, history: number[]) => {
     const relevantHistory = history.slice(-24)    // Prend les 24 derniers numéros
@@ -48,7 +50,9 @@ export interface ChasseMethodState {
  
   // Ajoute un nouveau numéro sorti
   addNumber: (state: ChasseMethodState, number: number) => {
-    if (state.phase === 'observation' && state.observationCount < 24) {
+    if (state.phase === 'play') {
+      state.displayedNumbers.push(number);
+    } else if (state.phase === 'observation' && state.observationCount < 24) {
       state.observationCount++
       state.remainingObservationTours--
 
@@ -88,4 +92,4 @@ export interface ChasseMethodState {
  
     state.selectedNumbers = eligibleNumbers
   }
- }
+}

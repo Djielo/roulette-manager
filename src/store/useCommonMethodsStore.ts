@@ -81,8 +81,8 @@ export const useCommonMethodsStore = create<StoreState & StoreActions>((set, get
     }
   
     // Appeler la logique spécifique à la méthode "Chasse" si elle est active
-    const chasseMethod = get().methods.find(m => m.id === 'chasse' && m.selected);
-    if (chasseMethod && useAppManagerStore.getState().isPlaying) {
+    const isChasseActive = get().activeMethodId === 'chasse';
+    if (isChasseActive && useAppManagerStore.getState().isPlaying) {
       useChasseStore.getState().updateChasseState(number);
     }
   },
