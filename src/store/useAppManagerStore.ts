@@ -216,6 +216,7 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
     },
 
     reset: () => {
+      // Réinitialiser les états principaux
       set({
         capital: { ...DEFAULT_CAPITAL },
         timer: { ...DEFAULT_TIMER },
@@ -226,6 +227,7 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
         validationErrors: [],
       });
 
+      // Réinitialiser les méthodes tout en préservant les statistiques
       useCommonMethodsStore.setState((state) => ({
         ...state,
         activeMethodId: null,
@@ -235,18 +237,24 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
           ...method,
           selected: false,
         })),
+        // Préserver les statistiques des méthodes (ne pas les réinitialiser)
         stats: state.stats,
       }));
 
+      // Réinitialiser le capital des méthodes
       useMethodCapitalStore.setState({
         methodCapital: {},
       });
 
+      // Réinitialiser la méthode active
       useMethodManagerStore.setState({
         activeMethodId: null,
       });
 
+      // Réinitialiser l'état de la méthode Chasse
       useChasseStore.getState().initializeChasse();
+
+      // Note: Les configurations des méthodes sont préservées car nous ne modifions pas useMethodConfigStore
     },
 
     validateStartConditions: () => {

@@ -1,10 +1,10 @@
-import { FC, useEffect } from 'react';
-import { useRouletteStore } from '../../store/useRouletteStore';
-import { ChasseMethodState } from '../../types/methods/chasse';
-import { useChasseStore } from '../../store/useChasseStore';
-import { useMethodCapitalStore } from '../../store/useMethodCapitalStore';
-import { BetPosition, RouletteNumber } from '../../types/roulette';
-import type { CombinedStoreState } from '../../types/stores';
+import { FC, useEffect } from "react";
+import { useChasseStore } from "../../store/useChasseStore";
+import { useMethodCapitalStore } from "../../store/useMethodCapitalStore";
+import { useRouletteStore } from "../../store/useRouletteStore";
+import { ChasseMethodState } from "../../types/methods/chasse";
+import { BetPosition, RouletteNumber } from "../../types/roulette";
+import type { CombinedStoreState } from "../../types/stores";
 
 export interface ChasseStore {
   chasseState: ChasseMethodState;
@@ -19,13 +19,13 @@ const ChasseMethod: FC = () => {
 
   // Extraction des méthodes du store roulette combiné avec le type correct
   const store = useRouletteStore() as CombinedStoreState;
-  const activeMethod = store.methods.find(m => m.selected);
-  const config = store.methodConfigs['chasse'];
+  const activeMethod = store.methods.find((m) => m.selected);
+  const config = store.methodConfigs["chasse"];
   const pendingMethods = store.pendingMethods;
   const cyclicMode = store.cyclicMode;
   const { deductBets, switchToNextMethod } = store;
 
-  const methodCapital = useMethodCapitalStore(state => 
+  const methodCapital = useMethodCapitalStore((state) =>
     activeMethod?.id ? state.methodCapital[activeMethod.id] : null
   );
 
@@ -39,10 +39,10 @@ const ChasseMethod: FC = () => {
 
   // Logs pour suivre la phase de jeu
   useEffect(() => {
-    if (phase === 'play') {
-      console.log('Phase de jeu démarrée');
-    } else if (phase === 'observation') {
-      console.log('Phase d\'observation démarrée');
+    if (phase === "play") {
+      console.log("Phase de jeu démarrée");
+    } else if (phase === "observation") {
+      console.log("Phase d'observation démarrée");
     }
   }, [phase]);
 
@@ -53,9 +53,9 @@ const ChasseMethod: FC = () => {
 
   // Déduire les mises à chaque tour de la phase de jeu
   useEffect(() => {
-    if (phase === 'play') {
-      const bets: BetPosition[] = selectedNumbers.map(number => ({
-        type: 'number',
+    if (phase === "play") {
+      const bets: BetPosition[] = selectedNumbers.map((number) => ({
+        type: "number",
         value: number,
         amount: config?.betUnit ?? 0.2,
       }));
@@ -64,20 +64,27 @@ const ChasseMethod: FC = () => {
         deductBets(activeMethod.id, bets);
       }
     }
-  }, [phase, remainingPlayTours, selectedNumbers, activeMethod, config, deductBets]);
+  }, [
+    phase,
+    remainingPlayTours,
+    selectedNumbers,
+    activeMethod,
+    config,
+    deductBets,
+  ]);
 
   // Gérer la fin de la phase de jeu
   useEffect(() => {
-    if (phase === 'play' && remainingPlayTours === 0 && activeMethod?.id) {
-      console.log('Fin de la phase de jeu détectée');
+    if (phase === "play" && remainingPlayTours === 0 && activeMethod?.id) {
+      console.log("Fin de la phase de jeu détectée");
       const currentMethodId = activeMethod.id;
 
       let nextMethodId: string | null = null;
       if (cyclicMode && pendingMethods.length === 1) {
-        console.log('Mode cyclique activé avec une seule méthode sélectionnée');
+        console.log("Mode cyclique activé avec une seule méthode sélectionnée");
         nextMethodId = currentMethodId;
       } else {
-        console.log('Recherche de la méthode suivante');
+        console.log("Recherche de la méthode suivante");
         const activeMethodIndex = pendingMethods.indexOf(currentMethodId);
         const nextMethodIndex = (activeMethodIndex + 1) % pendingMethods.length;
         nextMethodId = pendingMethods[nextMethodIndex];
@@ -87,35 +94,42 @@ const ChasseMethod: FC = () => {
         console.log(`Passage à la méthode suivante : ${nextMethodId}`);
         switchToNextMethod(currentMethodId, nextMethodId);
       } else {
-        console.log('Aucune méthode suivante trouvée');
+        console.log("Aucune méthode suivante trouvée");
       }
     }
-  }, [phase, remainingPlayTours, activeMethod, pendingMethods, cyclicMode, switchToNextMethod]);
+  }, [
+    phase,
+    remainingPlayTours,
+    activeMethod,
+    pendingMethods,
+    cyclicMode,
+    switchToNextMethod,
+  ]);
 
   // Helper pour obtenir la couleur du bouton selon le nombre de sorties
   const getButtonColor = (count: number) => {
-    if (count < 2) return 'bg-white text-black';
-    if (count === 2) return 'bg-green-400 text-black font-bold';
-    return 'bg-red-500 text-black font-bold';
+    if (count < 2) return "bg-white text-black";
+    if (count === 2) return "bg-green-400 text-black font-bold";
+    return "bg-red-500 text-black font-bold";
   };
 
   // Détermine les numéros à afficher en fonction de la phase
-  const numbersToDisplay = phase === 'observation'
-    ? Object.entries(numberCounts).map(([number]) => parseInt(number))
-    : selectedNumbers.slice(0, 3);
+  const numbersToDisplay =
+    phase === "observation"
+      ? Object.entries(numberCounts).map(([number]) => parseInt(number))
+      : selectedNumbers.slice(0, 3);
 
   return (
     <div className="p-4">
       {/* En-tête avec phase, tours restants et capital */}
       <div className="mb-4 text-center">
         <div className="text-roulette-gold text-xl">
-          Phase : {phase === 'observation' ? 'Observation' : 'Jeu'}
+          Phase : {phase === "observation" ? "Observation" : "Jeu"}
         </div>
         <div className="text-white/70">
-          {phase === 'observation'
+          {phase === "observation"
             ? `${remainingObservationTours} tours d'observation restants`
-            : `${remainingPlayTours} tours de jeu restants`
-          }
+            : `${remainingPlayTours} tours de jeu restants`}
         </div>
         {methodCapital && (
           <div className="mt-2">
@@ -137,31 +151,15 @@ const ChasseMethod: FC = () => {
             {numbersToDisplay.map((number) => (
               <button
                 key={number}
-                className={`p-2 text-center border border-roulette-gold/30 rounded transition-colors duration-200 font-bold ${getButtonColor(numberCounts[number]?.count || 0)}`}
+                className={`p-2 text-center border border-roulette-gold/30 rounded transition-colors duration-200 font-bold ${getButtonColor(
+                  numberCounts[number]?.count || 0
+                )}`}
               >
                 {number}
               </button>
             ))}
           </div>
         </div>
-
-        {phase === 'observation' && (
-          <div>
-            <div className="text-white/70 mb-2">Numéros cliqués :</div>
-            <div className="grid grid-cols-6 gap-2">
-              {Object.entries(numberCounts)
-                .filter(([_, data]) => data.count > 0)
-                .map(([number]) => (
-                  <button
-                    key={number}
-                    className="p-2 text-center border border-roulette-gold/30 rounded bg-blue-500 text-white font-bold"
-                  >
-                    {number}
-                  </button>
-                ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

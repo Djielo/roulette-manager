@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { RouletteNumber } from '../types/roulette';
-import { ChasseMethodState, chasseActions } from '../types/methods/chasse';
-import { useCommonMethodsStore } from './useCommonMethodsStore';
+import { create } from "zustand";
+import { ChasseMethodState, chasseActions } from "../types/methods/chasse";
+import { RouletteNumber } from "../types/roulette";
+import { useCommonMethodsStore } from "./useCommonMethodsStore";
 
 export interface StoreState {
   chasseState: ChasseMethodState;
@@ -14,14 +14,14 @@ export interface StoreActions {
 }
 
 const DEFAULT_CHASSE_STATE: ChasseMethodState = {
-  phase: 'observation',
+  phase: "observation",
   observationCount: 0,
   playCount: 0,
   remainingObservationTours: 24,
   remainingPlayTours: 12,
   numberCounts: {},
   selectedNumbers: [],
-  displayedNumbers: []
+  displayedNumbers: [],
 };
 
 export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
@@ -29,12 +29,15 @@ export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
 
   initializeChasse: () => {
     const history = useCommonMethodsStore.getState().history;
-    const currentState = get().chasseState;
-    const state = currentState.phase === 'finished' ? 
-      { ...DEFAULT_CHASSE_STATE } : 
-      { ...currentState, displayedNumbers: [] };
+
+    // Toujours réinitialiser complètement l'état, quelle que soit la phase actuelle
+    const state = { ...DEFAULT_CHASSE_STATE };
+
     if (history.length > 0) {
-      chasseActions.analyzeHistory(state, history.map((h) => h.number));
+      chasseActions.analyzeHistory(
+        state,
+        history.map((h) => h.number)
+      );
     }
     set({ chasseState: state });
   },
@@ -43,18 +46,18 @@ export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
     const state = { ...get().chasseState };
     chasseActions.addNumber(state, number);
     // Mettre à jour à la fois l'historique et l'affichage
-    set({ 
+    set({
       chasseState: {
         ...state,
-        displayedNumbers: [...state.displayedNumbers, number]
-      }
+        displayedNumbers: [...state.displayedNumbers, number],
+      },
     });
   },
 
   decrementPlayTours: () => {
     set((state) => {
       const chasseState = state.chasseState;
-      if (chasseState.phase === 'play' && chasseState.remainingPlayTours > 0) {
+      if (chasseState.phase === "play" && chasseState.remainingPlayTours > 0) {
         const newRemainingPlayTours = chasseState.remainingPlayTours - 1;
 
         return {
