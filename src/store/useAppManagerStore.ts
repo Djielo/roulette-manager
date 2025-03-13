@@ -257,8 +257,8 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
 
       console.log("Validation des conditions de démarrage...");
 
-      if (state.capital.initial <= 0) {
-        errors.push("Le capital initial doit être positif");
+      if (state.capital.initial < 30) {
+        errors.push("Le capital initial doit être d'au moins 30€");
       }
 
       if (state.capital.current <= 0) {
