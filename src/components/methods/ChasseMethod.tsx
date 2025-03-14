@@ -5,6 +5,7 @@ import { useRouletteStore } from "../../store/useRouletteStore";
 import { ChasseMethodState } from "../../types/methods/chasse";
 import { BetPosition, RouletteNumber } from "../../types/roulette";
 import type { CombinedStoreState } from "../../types/stores";
+import { formatRouletteNumber } from "../../utils/rouletteUtils";
 
 export interface ChasseStore {
   chasseState: ChasseMethodState;
@@ -153,7 +154,7 @@ const ChasseMethod: FC = () => {
                   number
                 )}`}
               >
-                {number}
+                {formatRouletteNumber(number)}
               </button>
             ))}
           </div>

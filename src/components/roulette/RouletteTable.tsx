@@ -2,6 +2,7 @@ import { FC, useEffect } from "react";
 import { useCommonMethodsStore } from "../../store/useCommonMethodsStore";
 import { useRouletteStore } from "../../store/useRouletteStore";
 import { RouletteNumber } from "../../types/roulette";
+import { formatRouletteNumber } from "../../utils/rouletteUtils";
 import BetsOverlay from "./BetsOverlay";
 
 interface RouletteTableProps {
@@ -34,6 +35,12 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
   }, [activeMethodId]);
 
   const getBets = () => {
+    // Ne générer les mises que si nous sommes en phase de jeu
+    if (chasseState.phase !== "play") {
+      console.log("Phase d'observation, pas de mises à afficher");
+      return [];
+    }
+
     if (!activeMethodId) {
       console.log(
         "Aucune méthode active (activeMethodId=null), pas de mises à afficher"
@@ -87,7 +94,7 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
       )} text-white p-4 flex items-center justify-center cursor-pointer hover:opacity-80`}
       onClick={() => handleNumberClick(number as RouletteNumber)}
     >
-      {number === 37 ? "00" : number}
+      {formatRouletteNumber(number)}
     </div>
   );
 
@@ -107,6 +114,10 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
     ];
     return redNumbers.includes(num) ? "bg-roulette-red" : "bg-roulette-black";
   };
+
+  // Déterminer si les mises doivent être affichées
+  const shouldShowBets =
+    chasseState.phase === "play" && chasseState.selectedNumbers.length > 0;
 
   return (
     <div className="max-w-4xl mx-auto p-4 pb-0 relative">
@@ -160,21 +171,21 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
         <div className="row-span-2 col-start-14 row-start-4" />
       </div>
 
-      {/* Forcer le recalcul des mises à chaque rendu */}
-      <div
-        key={JSON.stringify(chasseState.selectedNumbers)}
-        className="absolute pointer-events-none z-10"
-        style={{
-          left: "19px",
-          right: "19px",
-          top: "16px",
-          bottom: "0",
-          border:
-            chasseState.selectedNumbers.length > 0 ? "1px solid red" : "none",
-        }}
-      >
-        <BetsOverlay bets={getBets()} />
-      </div>
+      {/* N'afficher les mises que si nous sommes en phase de jeu */}
+      {shouldShowBets && (
+        <div
+          key={JSON.stringify(chasseState.selectedNumbers)}
+          className="absolute pointer-events-none z-10"
+          style={{
+            left: "19px",
+            right: "19px",
+            top: "16px",
+            bottom: "0",
+          }}
+        >
+          <BetsOverlay bets={getBets()} />
+        </div>
+      )}
     </div>
   );
 };
