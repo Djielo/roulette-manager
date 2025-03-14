@@ -216,6 +216,10 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
     },
 
     reset: () => {
+      // Identifiant unique pour les logs
+      const resetId = Math.floor(Math.random() * 1000000);
+      console.log(`[${resetId}] Réinitialisation de l'application...`);
+
       // Réinitialiser les états principaux
       set({
         capital: { ...DEFAULT_CAPITAL },
@@ -227,19 +231,22 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
         validationErrors: [],
       });
 
-      // Réinitialiser les méthodes tout en préservant les statistiques
-      useCommonMethodsStore.setState((state) => ({
-        ...state,
-        activeMethodId: null,
-        pendingMethods: [],
-        history: [],
-        methods: state.methods.map((method) => ({
-          ...method,
-          selected: false,
-        })),
-        // Préserver les statistiques des méthodes (ne pas les réinitialiser)
-        stats: state.stats,
-      }));
+      // Réinitialiser l'historique d'abord
+      useCommonMethodsStore.setState((state) => {
+        console.log(`[${resetId}] Réinitialisation de l'historique...`);
+        return {
+          ...state,
+          activeMethodId: null,
+          pendingMethods: [],
+          history: [], // Vider complètement l'historique
+          methods: state.methods.map((method) => ({
+            ...method,
+            selected: false,
+          })),
+          // Préserver les statistiques des méthodes (ne pas les réinitialiser)
+          stats: state.stats,
+        };
+      });
 
       // Réinitialiser le capital des méthodes
       useMethodCapitalStore.setState({
@@ -251,10 +258,11 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
         activeMethodId: null,
       });
 
-      // Réinitialiser l'état de la méthode Chasse
+      // Réinitialiser l'état de la méthode Chasse après avoir vidé l'historique
+      console.log(`[${resetId}] Réinitialisation de la méthode Chasse...`);
       useChasseStore.getState().initializeChasse();
 
-      // Note: Les configurations des méthodes sont préservées car nous ne modifions pas useMethodConfigStore
+      // Supprimer la vérification qui génère des logs en double
     },
 
     validateStartConditions: () => {

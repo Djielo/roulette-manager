@@ -37,19 +37,14 @@ const ChasseMethod: FC = () => {
     selectedNumbers,
   } = chasseState;
 
-  // Logs pour suivre la phase de jeu
+  // Surveiller les changements de phase
   useEffect(() => {
-    if (phase === "play") {
-      console.log("Phase de jeu démarrée");
-    } else if (phase === "observation") {
-      console.log("Phase d'observation démarrée");
-    }
-  }, [phase]);
-
-  // Logs pour suivre remainingPlayTours
-  useEffect(() => {
-    console.log(`Tours de jeu restants : ${remainingPlayTours}`);
-  }, [remainingPlayTours]);
+    console.log(
+      `Phase actuelle: ${phase}, Tours restants: ${
+        phase === "observation" ? remainingObservationTours : remainingPlayTours
+      }`
+    );
+  }, [phase, remainingObservationTours, remainingPlayTours]);
 
   // Déduire les mises à chaque tour de la phase de jeu
   useEffect(() => {
@@ -59,6 +54,8 @@ const ChasseMethod: FC = () => {
         value: number,
         amount: config?.betUnit ?? 0.2,
       }));
+
+      console.log("Mises générées dans ChasseMethod:", bets);
 
       if (activeMethod?.id) {
         deductBets(activeMethod.id, bets);
@@ -107,7 +104,8 @@ const ChasseMethod: FC = () => {
   ]);
 
   // Helper pour obtenir la couleur du bouton selon le nombre de sorties
-  const getButtonColor = (count: number) => {
+  const getButtonColor = (number: number) => {
+    const count = numberCounts[number]?.count || 0;
     if (count < 2) return "bg-white text-black";
     if (count === 2) return "bg-green-400 text-black font-bold";
     return "bg-red-500 text-black font-bold";
@@ -116,7 +114,7 @@ const ChasseMethod: FC = () => {
   // Détermine les numéros à afficher en fonction de la phase
   const numbersToDisplay =
     phase === "observation"
-      ? Object.entries(numberCounts).map(([number]) => parseInt(number))
+      ? [...new Set(chasseState.displayedNumbers)]
       : selectedNumbers.slice(0, 3);
 
   return (
@@ -152,7 +150,7 @@ const ChasseMethod: FC = () => {
               <button
                 key={number}
                 className={`p-2 text-center border border-roulette-gold/30 rounded transition-colors duration-200 font-bold ${getButtonColor(
-                  numberCounts[number]?.count || 0
+                  number
                 )}`}
               >
                 {number}
