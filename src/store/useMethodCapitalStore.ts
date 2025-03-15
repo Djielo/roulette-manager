@@ -17,7 +17,7 @@ export interface StoreState {
 export interface StoreActions {
   initializeMethodCapital: (methodId: string) => void;
   updateMethodCapital: (methodId: string, current: number) => void;
-  validateMethodCapital: (methodId: string, final: number) => void;
+  validateMethodCapital: (methodId: string) => void;
   deductBets: (methodId: string, bets: { amount: number }[]) => void;
   creditWin: (methodId: string, betAmount: number) => void;
   syncCapitals: (methodId: string) => void;
@@ -96,24 +96,33 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
         });
       },
 
-      validateMethodCapital: (methodId, final) => {
+      validateMethodCapital: (methodId) => {
         set((state) => {
           const methodCapital = state.methodCapital[methodId];
           if (!methodCapital) return state;
 
-          const formattedFinal = formatNumber(final);
+          // On utilise le capital actuel de la méthode comme valeur finale
+          const finalCapital = formatNumber(methodCapital.current);
+          console.log(`Fin du jeu sur la méthode ${methodId}`);
+          console.log(`Capital final de la méthode: ${finalCapital}€`);
+
+          // Mettre à jour le capital de la méthode
           const newMethodCapital = {
             ...state.methodCapital,
             [methodId]: {
               ...methodCapital,
-              validated: formattedFinal,
-              current: formattedFinal,
+              validated: finalCapital,
+              current: finalCapital,
             },
           };
 
+          // Mettre à jour les deux capitaux du manager avec le capital final de la méthode
           const appManagerStore = useAppManagerStore.getState();
-          appManagerStore.setCapital("initial", formattedFinal);
-          appManagerStore.setCapital("current", formattedFinal);
+          console.log(
+            `Mise à jour du capital du manager avec ${finalCapital}€`
+          );
+          appManagerStore.setCapital("initial", finalCapital);
+          appManagerStore.setCapital("current", finalCapital);
 
           return { methodCapital: newMethodCapital };
         });
