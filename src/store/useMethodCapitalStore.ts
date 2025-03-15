@@ -2,8 +2,6 @@
 import { create } from "zustand";
 import { MethodCapital } from "../types/manager";
 import { useAppManagerStore } from "./useAppManagerStore";
-import { useCommonMethodsStore } from "./useCommonMethodsStore";
-import { useMethodManagerStore } from "./useMethodManagerStore";
 
 // Fonction utilitaire pour formater les nombres avec 2 décimales
 const formatNumber = (num: number): number => {
@@ -17,242 +15,111 @@ export interface StoreState {
 export interface StoreActions {
   initializeMethodCapital: (methodId: string) => void;
   updateMethodCapital: (methodId: string, current: number) => void;
-  validateMethodCapital: (methodId: string) => void;
   deductBets: (methodId: string, bets: { amount: number }[]) => void;
   creditWin: (methodId: string, betAmount: number) => void;
-  syncCapitals: (methodId: string) => void;
   reset: () => void;
 }
 
 export const useMethodCapitalStore = create<StoreState & StoreActions>(
-  (set) => {
-    // Fonction utilitaire pour communiquer le capital actuel au manager
-    const updateManagerCurrentCapital = (newCurrent: number) => {
-      console.log(
-        `Communication du capital actuel au manager: ${formatNumber(
-          newCurrent
-        )}€`
+  (set) => ({
+    methodCapital: {},
+
+    initializeMethodCapital: (methodId) => {
+      const managerCapital = formatNumber(
+        useAppManagerStore.getState().capital.initial
       );
-      useAppManagerStore
-        .getState()
-        .setCapital("current", formatNumber(newCurrent));
-    };
+      console.log(
+        `Initialisation du capital pour ${methodId}: ${managerCapital}€`
+      );
 
-    return {
-      methodCapital: {},
+      set((state) => ({
+        methodCapital: {
+          ...state.methodCapital,
+          [methodId]: {
+            initial: managerCapital,
+            current: managerCapital,
+          },
+        },
+      }));
+    },
 
-      initializeMethodCapital: (methodId) => {
-        const initId = Math.floor(Math.random() * 1000000);
-        const managerCapital = formatNumber(
-          useAppManagerStore.getState().capital.initial
-        );
+    updateMethodCapital: (methodId, current) => {
+      const formattedCurrent = formatNumber(current);
+      console.log(
+        `Mise à jour du capital pour ${methodId}: ${formattedCurrent}€`
+      );
 
-        console.log(
-          `[${initId}] ========== INITIALISATION DU CAPITAL ==========`
-        );
-        console.log(`[${initId}] Method ID: ${methodId}`);
-        console.log(
-          `[${initId}] Capital initial du manager: ${managerCapital}`
-        );
+      set((state) => {
+        const methodCapital = state.methodCapital[methodId];
+        if (!methodCapital) return state;
 
-        set((state) => {
-          const newMethodCapital = {
-            ...state.methodCapital,
-            [methodId]: {
-              initial: managerCapital,
-              current: managerCapital,
-            },
-          };
+        useAppManagerStore.getState().setCapital("current", formattedCurrent);
 
-          // Communiquer le capital initial comme capital actuel au démarrage
-          updateManagerCurrentCapital(managerCapital);
-
-          console.log(
-            `[${initId}] Capital initial de la méthode:`,
-            newMethodCapital[methodId]
-          );
-          return { methodCapital: newMethodCapital };
-        });
-      },
-
-      updateMethodCapital: (methodId, current) => {
-        set((state) => {
-          const methodCapital = state.methodCapital[methodId];
-          if (!methodCapital) return state;
-
-          const formattedCurrent = formatNumber(current);
-          const newMethodCapital = {
+        return {
+          methodCapital: {
             ...state.methodCapital,
             [methodId]: {
               ...methodCapital,
               current: formattedCurrent,
             },
-          };
+          },
+        };
+      });
+    },
 
-          // Communiquer le nouveau capital actuel au manager
-          updateManagerCurrentCapital(formattedCurrent);
+    deductBets: (methodId, bets) => {
+      const totalBetAmount = formatNumber(
+        bets.reduce((sum, bet) => sum + bet.amount, 0)
+      );
+      console.log(`Déduction des mises pour ${methodId}: ${totalBetAmount}€`);
 
-          return { methodCapital: newMethodCapital };
-        });
-      },
+      set((state) => {
+        const methodCapital = state.methodCapital[methodId];
+        if (!methodCapital) return state;
 
-      validateMethodCapital: (methodId) => {
-        set((state) => {
-          const methodCapital = state.methodCapital[methodId];
-          if (!methodCapital) return state;
+        const newCurrent = formatNumber(methodCapital.current - totalBetAmount);
+        useAppManagerStore.getState().setCapital("current", newCurrent);
 
-          // On utilise le capital actuel de la méthode comme valeur finale
-          const finalCapital = formatNumber(methodCapital.current);
-          console.log(`Fin du jeu sur la méthode ${methodId}`);
-          console.log(`Capital final de la méthode: ${finalCapital}€`);
-
-          // Mettre à jour le capital de la méthode
-          const newMethodCapital = {
-            ...state.methodCapital,
-            [methodId]: {
-              ...methodCapital,
-              validated: finalCapital,
-              current: finalCapital,
-            },
-          };
-
-          // Mettre à jour les deux capitaux du manager avec le capital final de la méthode
-          const appManagerStore = useAppManagerStore.getState();
-          console.log(
-            `Mise à jour du capital du manager avec ${finalCapital}€`
-          );
-          appManagerStore.setCapital("initial", finalCapital);
-          appManagerStore.setCapital("current", finalCapital);
-
-          return { methodCapital: newMethodCapital };
-        });
-      },
-
-      deductBets: (methodId, bets) => {
-        const totalBetAmount = formatNumber(
-          bets.reduce((sum, bet) => sum + bet.amount, 0)
-        );
-        const deductionId = Math.floor(Math.random() * 1000000);
-
-        console.log(
-          `[${deductionId}] Déduction de ${totalBetAmount}€ du capital de la méthode ${methodId}`
-        );
-
-        set((state) => {
-          const methodCapital = state.methodCapital[methodId];
-          if (!methodCapital) {
-            console.error(
-              `[${deductionId}] ERREUR: Pas de capital trouvé pour la méthode ${methodId}`
-            );
-            return state;
-          }
-
-          const newCurrent = formatNumber(
-            methodCapital.current - totalBetAmount
-          );
-
-          const newMethodCapital = {
+        return {
+          methodCapital: {
             ...state.methodCapital,
             [methodId]: {
               ...methodCapital,
               current: newCurrent,
             },
-          };
+          },
+        };
+      });
+    },
 
-          // Communiquer le nouveau capital actuel au manager
-          updateManagerCurrentCapital(newCurrent);
+    creditWin: (methodId, betAmount) => {
+      const winAmount = formatNumber(betAmount * 36);
+      console.log(`Crédit du gain pour ${methodId}: ${winAmount}€`);
 
-          return { methodCapital: newMethodCapital };
-        });
-      },
+      set((state) => {
+        const methodCapital = state.methodCapital[methodId];
+        if (!methodCapital) return state;
 
-      creditWin: (methodId, betAmount) => {
-        const winAmount = formatNumber(betAmount * 36);
+        const newCurrent = formatNumber(
+          methodCapital.current + winAmount - betAmount
+        );
+        useAppManagerStore.getState().setCapital("current", newCurrent);
 
-        set((state) => {
-          const methodCapital = state.methodCapital[methodId];
-          if (!methodCapital) return state;
-
-          // Calculer le nouveau capital après gain ET déduction des mises
-          const newCurrent = formatNumber(
-            methodCapital.current + winAmount - betAmount
-          );
-
-          // Vérifier s'il y a un bénéfice APRÈS déduction des mises
-          if (newCurrent > methodCapital.initial) {
-            console.log(`BÉNÉFICE DÉTECTÉ ! La méthode ${methodId} s'arrête`);
-            console.log(
-              `Capital initial: ${methodCapital.initial}, Capital final: ${newCurrent}`
-            );
-            console.log(`Gain: ${winAmount}€, Mise déduite: ${betAmount}€`);
-
-            // Mettre à jour le capital de la méthode
-            const newMethodCapital = {
-              ...state.methodCapital,
-              [methodId]: {
-                ...methodCapital,
-                current: newCurrent,
-                validated: newCurrent,
-              },
-            };
-
-            // Valider le capital final
-            const appManagerStore = useAppManagerStore.getState();
-            appManagerStore.setCapital("initial", newCurrent);
-            appManagerStore.setCapital("current", newCurrent);
-
-            // Passer à la méthode suivante si en mode cyclique
-            const commonMethodsStore = useCommonMethodsStore.getState();
-            if (commonMethodsStore.cyclicMode) {
-              const nextMethodId = useMethodManagerStore
-                .getState()
-                .getNextMethodId(methodId);
-              if (nextMethodId) {
-                useMethodManagerStore
-                  .getState()
-                  .switchToNextMethod(methodId, nextMethodId);
-              }
-            }
-
-            return { methodCapital: newMethodCapital };
-          }
-
-          // Si pas de bénéfice, continuer normalement
-          const newMethodCapital = {
+        return {
+          methodCapital: {
             ...state.methodCapital,
             [methodId]: {
               ...methodCapital,
               current: newCurrent,
             },
-          };
+          },
+        };
+      });
+    },
 
-          // Communiquer le nouveau capital actuel au manager
-          updateManagerCurrentCapital(newCurrent);
-
-          return { methodCapital: newMethodCapital };
-        });
-      },
-
-      syncCapitals: (methodId) => {
-        set((state) => {
-          const methodCapital = state.methodCapital[methodId];
-          if (!methodCapital) return state;
-
-          return {
-            methodCapital: {
-              ...state.methodCapital,
-              [methodId]: {
-                ...methodCapital,
-                current: useAppManagerStore.getState().capital.current,
-              },
-            },
-          };
-        });
-      },
-
-      reset: () => {
-        set({ methodCapital: {} });
-      },
-    };
-  }
+    reset: () => {
+      console.log("Réinitialisation complète du capital des méthodes");
+      set({ methodCapital: {} });
+    },
+  })
 );

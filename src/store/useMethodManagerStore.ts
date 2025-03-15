@@ -1,5 +1,6 @@
 // src/store/useMethodManagerStore.ts
 import { create } from "zustand";
+import { useAppManagerStore } from "./useAppManagerStore";
 import { useChasseStore } from "./useChasseStore";
 import { useCommonMethodsStore } from "./useCommonMethodsStore";
 import { useMethodCapitalStore } from "./useMethodCapitalStore";
@@ -9,77 +10,66 @@ export interface StoreState {
 }
 
 export interface StoreActions {
-  switchToNextMethod: (currentMethodId: string, nextMethodId: string) => void;
+  switchToNextMethod: (currentMethodId: string) => void;
   initializeMethod: (methodId: string) => void;
   reset: () => void;
-  getNextMethodId: (currentMethodId: string) => string | null;
 }
 
 export const useMethodManagerStore = create<StoreState & StoreActions>(
-  (set, get) => ({
+  (set) => ({
     activeMethodId: null,
 
-    getNextMethodId: (currentMethodId) => {
+    switchToNextMethod: (currentMethodId) => {
       const { pendingMethods, cyclicMode } = useCommonMethodsStore.getState();
-
-      if (pendingMethods.length === 0) return null;
-
       const currentIndex = pendingMethods.indexOf(currentMethodId);
-      if (currentIndex === -1) return pendingMethods[0];
 
-      // Si on est en mode cyclique ou s'il reste des méthodes après celle-ci
-      if (cyclicMode || currentIndex < pendingMethods.length - 1) {
-        return pendingMethods[(currentIndex + 1) % pendingMethods.length];
+      // Vérifier si on peut passer à la méthode suivante
+      if (currentIndex === -1 || pendingMethods.length === 0) {
+        console.log("Aucune méthode suivante disponible");
+        return;
       }
 
       // En mode non cyclique, si on est à la dernière méthode
-      return null;
-    },
-
-    switchToNextMethod: (currentMethodId, nextMethodId) => {
-      console.log(
-        `Tentative de transition de ${currentMethodId} à ${nextMethodId}`
-      );
-
-      // Vérifier le nombre de tours restants pour la méthode Chasse
-      if (currentMethodId === "chasse") {
-        const chasseState = useChasseStore.getState().chasseState;
-        if (chasseState.remainingPlayTours > 0) {
-          console.log(
-            `Transition annulée : il reste encore ${chasseState.remainingPlayTours} tours à jouer`
-          );
-          return;
-        }
+      if (!cyclicMode && currentIndex === pendingMethods.length - 1) {
+        console.log("Fin de la dernière méthode en mode non cyclique");
+        return;
       }
 
-      console.log(`Transition validée de ${currentMethodId} à ${nextMethodId}`);
+      // Déterminer la prochaine méthode
+      const nextMethodId =
+        pendingMethods[(currentIndex + 1) % pendingMethods.length];
+      console.log(`Transition de ${currentMethodId} vers ${nextMethodId}`);
 
-      // Initialiser la nouvelle méthode avec le capital actuel du manager
-      useMethodCapitalStore.getState().initializeMethodCapital(nextMethodId);
+      // Sauvegarder le capital actuel
+      const currentCapital = useAppManagerStore.getState().capital.current;
 
       // Mettre à jour l'ID de la méthode active
       set({ activeMethodId: nextMethodId });
+      useCommonMethodsStore.setState({ activeMethodId: nextMethodId });
 
-      // Initialiser la méthode
-      get().initializeMethod(nextMethodId);
+      // Initialiser la nouvelle méthode avec le capital actuel
+      useMethodCapitalStore.getState().initializeMethodCapital(nextMethodId);
+      useAppManagerStore.getState().setCapital("initial", currentCapital);
+      useAppManagerStore.getState().setCapital("current", currentCapital);
+
+      // Initialiser la méthode spécifique
+      if (nextMethodId === "chasse") {
+        useChasseStore.getState().initializeChasse();
+      }
     },
 
     initializeMethod: (methodId) => {
-      // Synchroniser l'état actif dans tous les stores
+      console.log(`Initialisation de la méthode ${methodId}`);
       set({ activeMethodId: methodId });
-      useCommonMethodsStore.setState((state) => ({
-        ...state,
-        activeMethodId: methodId,
-      }));
+      useCommonMethodsStore.setState({ activeMethodId: methodId });
 
-      // Initialiser la méthode spécifique
       if (methodId === "chasse") {
         useChasseStore.getState().initializeChasse();
       }
-      // Ajouter d'autres initialisations pour d'autres méthodes si nécessaire
     },
 
     reset: () => {
+      console.log("Réinitialisation du gestionnaire de méthodes");
       set({ activeMethodId: null });
     },
   })
