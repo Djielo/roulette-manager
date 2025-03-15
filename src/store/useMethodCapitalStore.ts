@@ -2,6 +2,8 @@
 import { create } from "zustand";
 import { MethodCapital } from "../types/manager";
 import { useAppManagerStore } from "./useAppManagerStore";
+import { useCommonMethodsStore } from "./useCommonMethodsStore";
+import { useMethodManagerStore } from "./useMethodManagerStore";
 
 export interface StoreState {
   methodCapital: Record<string, MethodCapital>;
@@ -131,6 +133,45 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
 
         const newCurrent = methodCapital.current + winAmount;
 
+        // Vérifier s'il y a un bénéfice
+        if (newCurrent > methodCapital.initial) {
+          console.log(`BÉNÉFICE DÉTECTÉ ! Arrêt de la méthode ${methodId}`);
+          console.log(
+            `Capital initial: ${methodCapital.initial}, Capital final: ${newCurrent}`
+          );
+
+          // Mettre à jour les capitaux du manager immédiatement
+          const appManagerStore = useAppManagerStore.getState();
+          appManagerStore.setCapital("initial", newCurrent);
+          appManagerStore.setCapital("current", newCurrent);
+
+          // Marquer la méthode comme terminée avec bénéfice
+          const newMethodCapital = {
+            ...state.methodCapital,
+            [methodId]: {
+              ...methodCapital,
+              current: newCurrent,
+              validated: newCurrent,
+            },
+          };
+
+          // Passer à la méthode suivante si en mode cyclique
+          const commonMethodsStore = useCommonMethodsStore.getState();
+          if (commonMethodsStore.cyclicMode) {
+            const nextMethodId = useMethodManagerStore
+              .getState()
+              .getNextMethodId(methodId);
+            if (nextMethodId) {
+              useMethodManagerStore
+                .getState()
+                .switchToNextMethod(methodId, nextMethodId);
+            }
+          }
+
+          return { methodCapital: newMethodCapital };
+        }
+
+        // Si pas de bénéfice, continuer normalement
         const newMethodCapital = {
           ...state.methodCapital,
           [methodId]: {
@@ -140,7 +181,6 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
         };
 
         useAppManagerStore.getState().setCapital("current", newCurrent);
-
         return { methodCapital: newMethodCapital };
       });
     },
