@@ -1,5 +1,4 @@
 import { FC, useEffect, useRef } from "react";
-import { useAppManagerStore } from "../../store/useAppManagerStore";
 import { useChasseStore } from "../../store/useChasseStore";
 import { useCommonMethodsStore } from "../../store/useCommonMethodsStore";
 import { useMethodCapitalStore } from "../../store/useMethodCapitalStore";
@@ -153,7 +152,7 @@ const ChasseMethod: FC = () => {
       console.log("Tours restants:", chasseState.remainingPlayTours);
       console.log("Mode cyclique:", cyclicMode);
 
-      // Ne terminer la partie que si le dernier tour a été joué
+      // En mode non cyclique, terminer la partie quand tous les tours sont joués
       if (
         chasseState.phase === "play" &&
         chasseState.remainingPlayTours === 0 &&
@@ -161,7 +160,13 @@ const ChasseMethod: FC = () => {
         chasseState.playCount === 12 // S'assurer que le dernier tour a été joué
       ) {
         console.log("Fin de la phase de jeu - Mode non cyclique");
-        useAppManagerStore.getState().reset();
+        // Marquer la phase comme terminée sans réinitialiser
+        useChasseStore.setState((state) => ({
+          chasseState: {
+            ...state.chasseState,
+            phase: "finished",
+          },
+        }));
       }
     };
 

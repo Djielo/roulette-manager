@@ -257,53 +257,40 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
     },
 
     reset: () => {
-      // Identifiant unique pour les logs
-      const resetId = Math.floor(Math.random() * 1000000);
-      console.log(`[${resetId}] Réinitialisation de l'application...`);
+      console.log("Réinitialisation de l'application...");
 
-      // Réinitialiser les états principaux
+      // Réinitialiser le store principal
       set({
-        capital: { ...DEFAULT_CAPITAL },
-        timer: { ...DEFAULT_TIMER },
-        limits: { ...DEFAULT_LIMITS },
-        session: { ...DEFAULT_SESSION },
-        isPlaying: false,
+        capital: DEFAULT_CAPITAL,
+        timer: DEFAULT_TIMER,
+        limits: DEFAULT_LIMITS,
+        session: DEFAULT_SESSION,
         sessionLocked: false,
+        isPlaying: false,
         validationErrors: [],
       });
 
-      // Réinitialiser l'historique d'abord
-      useCommonMethodsStore.setState((state) => {
-        console.log(`[${resetId}] Réinitialisation de l'historique...`);
-        return {
-          ...state,
-          activeMethodId: null,
-          pendingMethods: [],
-          history: [], // Vider complètement l'historique
-          methods: state.methods.map((method) => ({
-            ...method,
-            selected: false,
-          })),
-          // Préserver les statistiques des méthodes (ne pas les réinitialiser)
-          stats: state.stats,
-        };
-      });
+      // Réinitialiser les autres stores
+      useMethodCapitalStore.getState().reset();
+      useMethodManagerStore.getState().reset();
 
-      // Réinitialiser le capital des méthodes
-      useMethodCapitalStore.setState({
-        methodCapital: {},
-      });
-
-      // Réinitialiser la méthode active
-      useMethodManagerStore.setState({
-        activeMethodId: null,
-      });
-
-      // Réinitialiser l'état de la méthode Chasse après avoir vidé l'historique
-      console.log(`[${resetId}] Réinitialisation de la méthode Chasse...`);
+      // Réinitialiser le store de la méthode Chasse
       useChasseStore.getState().initializeChasse();
 
-      // Supprimer la vérification qui génère des logs en double
+      // Réinitialiser le store commun des méthodes
+      useCommonMethodsStore.setState((state) => ({
+        ...state,
+        cyclicMode: true,
+        activeMethodId: null,
+        pendingMethods: [],
+        history: [],
+        methods: state.methods.map((method) => ({
+          ...method,
+          selected: false,
+        })),
+      }));
+
+      console.log("Réinitialisation terminée");
     },
 
     validateStartConditions: () => {

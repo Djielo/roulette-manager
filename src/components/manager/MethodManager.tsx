@@ -202,7 +202,10 @@ const MethodManager: FC = () => {
             </button>
             <button
               className="bg-gray-700 text-white px-4 py-2 rounded border border-roulette-gold/30 hover:border-roulette-gold"
-              onClick={reset}
+              onClick={() => {
+                console.log("Réinitialisation manuelle demandée");
+                reset();
+              }}
             >
               Réinitialiser
             </button>
