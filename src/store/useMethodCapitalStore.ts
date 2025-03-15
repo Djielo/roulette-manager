@@ -5,6 +5,11 @@ import { useAppManagerStore } from "./useAppManagerStore";
 import { useCommonMethodsStore } from "./useCommonMethodsStore";
 import { useMethodManagerStore } from "./useMethodManagerStore";
 
+// Fonction utilitaire pour formater les nombres avec 2 décimales
+const formatNumber = (num: number): number => {
+  return Number(num.toFixed(2));
+};
+
 export interface StoreState {
   methodCapital: Record<string, MethodCapital>;
 }
@@ -25,7 +30,9 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
 
     initializeMethodCapital: (methodId) => {
       const initId = Math.floor(Math.random() * 1000000);
-      const managerCapital = useAppManagerStore.getState().capital.initial;
+      const managerCapital = formatNumber(
+        useAppManagerStore.getState().capital.initial
+      );
 
       console.log(
         `[${initId}] ========== INITIALISATION DU CAPITAL ==========`
@@ -55,15 +62,16 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
         const methodCapital = state.methodCapital[methodId];
         if (!methodCapital) return state;
 
+        const formattedCurrent = formatNumber(current);
         const newMethodCapital = {
           ...state.methodCapital,
           [methodId]: {
             ...methodCapital,
-            current,
+            current: formattedCurrent,
           },
         };
 
-        useAppManagerStore.getState().setCapital("current", current);
+        useAppManagerStore.getState().setCapital("current", formattedCurrent);
 
         return { methodCapital: newMethodCapital };
       });
@@ -74,25 +82,28 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
         const methodCapital = state.methodCapital[methodId];
         if (!methodCapital) return state;
 
+        const formattedFinal = formatNumber(final);
         const newMethodCapital = {
           ...state.methodCapital,
           [methodId]: {
             ...methodCapital,
-            validated: final,
-            current: final,
+            validated: formattedFinal,
+            current: formattedFinal,
           },
         };
 
         const appManagerStore = useAppManagerStore.getState();
-        appManagerStore.setCapital("initial", final);
-        appManagerStore.setCapital("current", final);
+        appManagerStore.setCapital("initial", formattedFinal);
+        appManagerStore.setCapital("current", formattedFinal);
 
         return { methodCapital: newMethodCapital };
       });
     },
 
     deductBets: (methodId, bets) => {
-      const totalBetAmount = bets.reduce((sum, bet) => sum + bet.amount, 0);
+      const totalBetAmount = formatNumber(
+        bets.reduce((sum, bet) => sum + bet.amount, 0)
+      );
       const deductionId = Math.floor(Math.random() * 1000000);
 
       console.log(
@@ -108,7 +119,7 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
           return state;
         }
 
-        const newCurrent = methodCapital.current - totalBetAmount;
+        const newCurrent = formatNumber(methodCapital.current - totalBetAmount);
 
         const newMethodCapital = {
           ...state.methodCapital,
@@ -125,53 +136,18 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
     },
 
     creditWin: (methodId, betAmount) => {
-      const winAmount = betAmount * 36;
+      const winAmount = formatNumber(betAmount * 36);
 
       set((state) => {
         const methodCapital = state.methodCapital[methodId];
         if (!methodCapital) return state;
 
-        const newCurrent = methodCapital.current + winAmount;
+        // Calculer le nouveau capital après gain ET déduction des mises
+        const newCurrent = formatNumber(
+          methodCapital.current + winAmount - betAmount
+        );
 
-        // Vérifier s'il y a un bénéfice
-        if (newCurrent > methodCapital.initial) {
-          console.log(`BÉNÉFICE DÉTECTÉ ! Arrêt de la méthode ${methodId}`);
-          console.log(
-            `Capital initial: ${methodCapital.initial}, Capital final: ${newCurrent}`
-          );
-
-          // Mettre à jour les capitaux du manager immédiatement
-          const appManagerStore = useAppManagerStore.getState();
-          appManagerStore.setCapital("initial", newCurrent);
-          appManagerStore.setCapital("current", newCurrent);
-
-          // Marquer la méthode comme terminée avec bénéfice
-          const newMethodCapital = {
-            ...state.methodCapital,
-            [methodId]: {
-              ...methodCapital,
-              current: newCurrent,
-              validated: newCurrent,
-            },
-          };
-
-          // Passer à la méthode suivante si en mode cyclique
-          const commonMethodsStore = useCommonMethodsStore.getState();
-          if (commonMethodsStore.cyclicMode) {
-            const nextMethodId = useMethodManagerStore
-              .getState()
-              .getNextMethodId(methodId);
-            if (nextMethodId) {
-              useMethodManagerStore
-                .getState()
-                .switchToNextMethod(methodId, nextMethodId);
-            }
-          }
-
-          return { methodCapital: newMethodCapital };
-        }
-
-        // Si pas de bénéfice, continuer normalement
+        // Mettre à jour le capital de la méthode
         const newMethodCapital = {
           ...state.methodCapital,
           [methodId]: {
@@ -180,7 +156,52 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
           },
         };
 
+        // Mettre à jour le capital actuel du manager
         useAppManagerStore.getState().setCapital("current", newCurrent);
+
+        // Vérifier s'il y a un bénéfice APRÈS déduction des mises
+        if (newCurrent > methodCapital.initial) {
+          console.log(
+            `BÉNÉFICE DÉTECTÉ ! La méthode ${methodId} sera arrêtée après ce tour`
+          );
+          console.log(
+            `Capital initial: ${methodCapital.initial}, Capital final: ${newCurrent}`
+          );
+          console.log(`Gain: ${winAmount}€, Mise déduite: ${betAmount}€`);
+
+          // On laisse le temps au tapis de s'afficher avant de passer à la suite
+          setTimeout(() => {
+            // Mettre à jour les capitaux du manager
+            const appManagerStore = useAppManagerStore.getState();
+            appManagerStore.setCapital("initial", newCurrent);
+            appManagerStore.setCapital("current", newCurrent);
+
+            // Marquer la méthode comme terminée avec bénéfice
+            set((state) => ({
+              methodCapital: {
+                ...state.methodCapital,
+                [methodId]: {
+                  ...state.methodCapital[methodId],
+                  validated: newCurrent,
+                },
+              },
+            }));
+
+            // Passer à la méthode suivante si en mode cyclique
+            const commonMethodsStore = useCommonMethodsStore.getState();
+            if (commonMethodsStore.cyclicMode) {
+              const nextMethodId = useMethodManagerStore
+                .getState()
+                .getNextMethodId(methodId);
+              if (nextMethodId) {
+                useMethodManagerStore
+                  .getState()
+                  .switchToNextMethod(methodId, nextMethodId);
+              }
+            }
+          }, 2000); // Attendre 2 secondes pour laisser le temps au tapis de s'afficher
+        }
+
         return { methodCapital: newMethodCapital };
       });
     },
