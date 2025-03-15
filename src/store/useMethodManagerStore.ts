@@ -38,15 +38,14 @@ export const useMethodManagerStore = create<StoreState & StoreActions>(
 
     switchToNextMethod: (currentMethodId, nextMethodId) => {
       console.log(`Transition de ${currentMethodId} à ${nextMethodId}`);
-      set((state) => {
-        const currentMethodCapital =
-          useMethodCapitalStore.getState().methodCapital[currentMethodId];
-        if (!currentMethodCapital) return state;
 
-        useMethodCapitalStore.getState().initializeMethodCapital(nextMethodId);
-        return { activeMethodId: nextMethodId };
-      });
+      // Initialiser la nouvelle méthode avec le capital actuel du manager
+      useMethodCapitalStore.getState().initializeMethodCapital(nextMethodId);
 
+      // Mettre à jour l'ID de la méthode active
+      set({ activeMethodId: nextMethodId });
+
+      // Initialiser la méthode
       get().initializeMethod(nextMethodId);
     },
 
