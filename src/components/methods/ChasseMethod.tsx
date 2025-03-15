@@ -92,7 +92,7 @@ const ChasseMethod: FC = () => {
 
       deductBets(activeMethodId, bets);
       initialBetsDeductedRef.current = true;
-      lastProcessedTourRef.current = 11; // Pour que la prochaine déduction se fasse au tour 11
+      lastProcessedTourRef.current = remainingPlayTours; // Utiliser le nombre actuel de tours
     }
   }, [
     chasseState.phaseChanged,
@@ -101,6 +101,7 @@ const ChasseMethod: FC = () => {
     activeMethodId,
     config,
     deductBets,
+    remainingPlayTours,
   ]);
 
   // Déduire les mises à chaque tour de la phase de jeu
@@ -112,6 +113,7 @@ const ChasseMethod: FC = () => {
     if (
       phase === "play" &&
       remainingPlayTours !== lastProcessedTourRef.current &&
+      remainingPlayTours < lastProcessedTourRef.current && // S'assurer que nous avançons dans les tours
       selectedNumbers.length > 0 &&
       activeMethodId
     ) {
@@ -151,10 +153,12 @@ const ChasseMethod: FC = () => {
       console.log("Tours restants:", chasseState.remainingPlayTours);
       console.log("Mode cyclique:", cyclicMode);
 
+      // Ne terminer la partie que si le dernier tour a été joué
       if (
         chasseState.phase === "play" &&
         chasseState.remainingPlayTours === 0 &&
-        !cyclicMode
+        !cyclicMode &&
+        chasseState.playCount === 12 // S'assurer que le dernier tour a été joué
       ) {
         console.log("Fin de la phase de jeu - Mode non cyclique");
         useAppManagerStore.getState().reset();

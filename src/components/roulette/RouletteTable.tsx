@@ -82,7 +82,7 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
     if (!isPlaying) return;
 
     console.log(
-      `Clic sur le numéro ${number}, méthode active: ${activeMethodId}, phase: ${chasseState.phase}`
+      `Clic sur le numéro ${number}, méthode active: ${activeMethodId}, phase: ${chasseState.phase}, tours restants: ${chasseState.remainingPlayTours}`
     );
 
     // Vérifier si le numéro cliqué est un numéro sélectionné pour les mises
@@ -97,6 +97,7 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
       creditWin(activeMethodId, betAmount);
     }
 
+    // Ajouter le spin et déclencher le callback
     addSpin(number);
     onNumberClick?.(number);
   };
@@ -132,7 +133,9 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
 
   // Déterminer si les mises doivent être affichées
   const shouldShowBets =
-    chasseState.phase === "play" && chasseState.selectedNumbers.length > 0;
+    chasseState.phase === "play" &&
+    chasseState.selectedNumbers.length > 0 &&
+    chasseState.remainingPlayTours >= 0; // Inclure le dernier tour (0)
 
   return (
     <div className="max-w-4xl mx-auto p-4 pb-0 relative">
@@ -167,9 +170,11 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
         <div className="row-span-2 row-start-4" />
 
         <div className="col-span-12 row-start-4 grid grid-cols-3 gap-1">
-          {["1ère Douzaine", "2ème Douzaine", "3ème Douzaine"].map((text) =>
-            renderText(text)
-          )}
+          {[
+            { text: "1ère Douzaine", color: "green" },
+            { text: "2ème Douzaine", color: "green" },
+            { text: "3ème Douzaine", color: "green" },
+          ].map(({ text, color }) => renderText(text, color))}
         </div>
 
         <div className="col-span-12 col-start-2 row-start-5 grid grid-cols-6 gap-1">
