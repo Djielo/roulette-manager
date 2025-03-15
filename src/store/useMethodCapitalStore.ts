@@ -18,11 +18,11 @@ export interface StoreActions {
 }
 
 export const useMethodCapitalStore = create<StoreState & StoreActions>(
-  (set, get) => ({
+  (set) => ({
     methodCapital: {},
 
     initializeMethodCapital: (methodId) => {
-      const initId = Math.floor(Math.random() * 1000000); // ID unique pour tracer cette opération
+      const initId = Math.floor(Math.random() * 1000000);
       const currentAppCapital = useAppManagerStore.getState().capital.current;
 
       console.log(
@@ -31,10 +31,6 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
       console.log(`[${initId}] Method ID: ${methodId}`);
       console.log(
         `[${initId}] Capital actuel de l'application: ${currentAppCapital}`
-      );
-      console.log(
-        `[${initId}] État actuel du methodCapital:`,
-        get().methodCapital
       );
 
       set((state) => {
@@ -50,40 +46,53 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
           `[${initId}] Nouveau capital de la méthode:`,
           newMethodCapital[methodId]
         );
-        console.log(
-          `[${initId}] État complet après mise à jour:`,
-          newMethodCapital
-        );
-        console.log(`[${initId}] ==========================================`);
-
         return { methodCapital: newMethodCapital };
       });
     },
 
     updateMethodCapital: (methodId, current) => {
-      set((state) => ({
-        methodCapital: {
+      set((state) => {
+        const methodCapital = state.methodCapital[methodId];
+        if (!methodCapital) return state;
+
+        // Mettre à jour le capital de la méthode
+        const newMethodCapital = {
           ...state.methodCapital,
           [methodId]: {
-            ...state.methodCapital[methodId],
+            ...methodCapital,
             current,
           },
-        },
-      }));
+        };
+
+        // Synchroniser avec le capital du manager
+        useAppManagerStore.getState().setCapital("current", current);
+
+        return { methodCapital: newMethodCapital };
+      });
     },
 
     validateMethodCapital: (methodId, final) => {
-      set((state) => ({
-        methodCapital: {
+      set((state) => {
+        const methodCapital = state.methodCapital[methodId];
+        if (!methodCapital) return state;
+
+        // Mettre à jour le capital final de la méthode
+        const newMethodCapital = {
           ...state.methodCapital,
           [methodId]: {
-            ...state.methodCapital[methodId],
+            ...methodCapital,
             validated: final,
             current: final,
           },
-        },
-      }));
-      useAppManagerStore.getState().setCapital("current", final);
+        };
+
+        // Synchroniser avec le capital du manager et mettre à jour le capital initial
+        const appManagerStore = useAppManagerStore.getState();
+        appManagerStore.setCapital("current", final);
+        appManagerStore.setCapital("initial", final);
+
+        return { methodCapital: newMethodCapital };
+      });
     },
 
     deductBets: (methodId, bets) => {

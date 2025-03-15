@@ -30,6 +30,7 @@ export interface SessionState {
   isActive: boolean;
   hasExpired: boolean;
   stoppedBy: "timer" | "maxLoss" | "targetProfit" | null;
+  lastSessionEndTime: number | null;
 }
 
 export interface StoreState {
@@ -80,6 +81,7 @@ const DEFAULT_SESSION: SessionState = {
   isActive: false,
   hasExpired: false,
   stoppedBy: null,
+  lastSessionEndTime: null,
 };
 
 export const useAppManagerStore = create<StoreState & StoreActions>(
@@ -147,6 +149,7 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
     startTimer: () => {
       const interval = setInterval(() => {
         const state = get();
+        const activeMethodId = useCommonMethodsStore.getState().activeMethodId;
 
         const shouldStop = () => {
           const { capital, limits } = state;
@@ -164,14 +167,32 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
         const stopReason = shouldStop();
         if (stopReason) {
           clearInterval(interval);
+
+          // Enregistrer l'heure de fin de session
+          const lastSessionEndTime = Date.now();
+
           set({
             isPlaying: false,
             session: {
               isActive: false,
               hasExpired: true,
               stoppedBy: stopReason,
+              lastSessionEndTime,
             },
           });
+
+          // Si on est en mode cyclique, on passe à la méthode suivante
+          if (activeMethodId) {
+            const nextMethodId = useMethodManagerStore
+              .getState()
+              .getNextMethodId(activeMethodId);
+            if (nextMethodId) {
+              useMethodManagerStore
+                .getState()
+                .switchToNextMethod(activeMethodId, nextMethodId);
+            }
+          }
+
           return;
         }
 
@@ -202,6 +223,23 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
     togglePlay: () => {
       const state = get();
       if (!state.sessionLocked) {
+        // Vérifier le délai de sécurité entre les sessions uniquement en production
+        if (import.meta.env.PROD && state.session.lastSessionEndTime) {
+          const hoursSinceLastSession =
+            (Date.now() - state.session.lastSessionEndTime) / (1000 * 60 * 60);
+          if (hoursSinceLastSession < 1) {
+            set((state) => ({
+              validationErrors: [
+                ...state.validationErrors,
+                `Vous devez attendre encore ${Math.ceil(
+                  60 - hoursSinceLastSession * 60
+                )} minutes avant de pouvoir démarrer une nouvelle session`,
+              ],
+            }));
+            return;
+          }
+        }
+
         const isValid = get().validateStartConditions();
         if (!isValid) {
           return;
@@ -221,6 +259,7 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
             isActive: true,
             hasExpired: false,
             stoppedBy: null,
+            lastSessionEndTime: null,
           },
         });
 
@@ -259,12 +298,21 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
     reset: () => {
       console.log("Réinitialisation de l'application...");
 
+      // Enregistrer l'heure de fin de session
+      const currentSession = get().session;
+      const lastSessionEndTime = currentSession.isActive
+        ? Date.now()
+        : currentSession.lastSessionEndTime;
+
       // Réinitialiser le store principal
       set({
         capital: DEFAULT_CAPITAL,
         timer: DEFAULT_TIMER,
         limits: DEFAULT_LIMITS,
-        session: DEFAULT_SESSION,
+        session: {
+          ...DEFAULT_SESSION,
+          lastSessionEndTime,
+        },
         sessionLocked: false,
         isPlaying: false,
         validationErrors: [],
