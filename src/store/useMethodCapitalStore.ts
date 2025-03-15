@@ -147,7 +147,46 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
           methodCapital.current + winAmount - betAmount
         );
 
-        // Mettre à jour le capital de la méthode
+        // Vérifier s'il y a un bénéfice APRÈS déduction des mises
+        if (newCurrent > methodCapital.initial) {
+          console.log(`BÉNÉFICE DÉTECTÉ ! La méthode ${methodId} s'arrête`);
+          console.log(
+            `Capital initial: ${methodCapital.initial}, Capital final: ${newCurrent}`
+          );
+          console.log(`Gain: ${winAmount}€, Mise déduite: ${betAmount}€`);
+
+          // Mettre à jour les capitaux du manager
+          const appManagerStore = useAppManagerStore.getState();
+          appManagerStore.setCapital("initial", newCurrent);
+          appManagerStore.setCapital("current", newCurrent);
+
+          // Marquer la méthode comme terminée avec bénéfice
+          const newMethodCapital = {
+            ...state.methodCapital,
+            [methodId]: {
+              ...methodCapital,
+              current: newCurrent,
+              validated: newCurrent,
+            },
+          };
+
+          // Passer à la méthode suivante si en mode cyclique
+          const commonMethodsStore = useCommonMethodsStore.getState();
+          if (commonMethodsStore.cyclicMode) {
+            const nextMethodId = useMethodManagerStore
+              .getState()
+              .getNextMethodId(methodId);
+            if (nextMethodId) {
+              useMethodManagerStore
+                .getState()
+                .switchToNextMethod(methodId, nextMethodId);
+            }
+          }
+
+          return { methodCapital: newMethodCapital };
+        }
+
+        // Si pas de bénéfice, continuer normalement
         const newMethodCapital = {
           ...state.methodCapital,
           [methodId]: {
@@ -156,52 +195,7 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
           },
         };
 
-        // Mettre à jour le capital actuel du manager
         useAppManagerStore.getState().setCapital("current", newCurrent);
-
-        // Vérifier s'il y a un bénéfice APRÈS déduction des mises
-        if (newCurrent > methodCapital.initial) {
-          console.log(
-            `BÉNÉFICE DÉTECTÉ ! La méthode ${methodId} sera arrêtée après ce tour`
-          );
-          console.log(
-            `Capital initial: ${methodCapital.initial}, Capital final: ${newCurrent}`
-          );
-          console.log(`Gain: ${winAmount}€, Mise déduite: ${betAmount}€`);
-
-          // On laisse le temps au tapis de s'afficher avant de passer à la suite
-          setTimeout(() => {
-            // Mettre à jour les capitaux du manager
-            const appManagerStore = useAppManagerStore.getState();
-            appManagerStore.setCapital("initial", newCurrent);
-            appManagerStore.setCapital("current", newCurrent);
-
-            // Marquer la méthode comme terminée avec bénéfice
-            set((state) => ({
-              methodCapital: {
-                ...state.methodCapital,
-                [methodId]: {
-                  ...state.methodCapital[methodId],
-                  validated: newCurrent,
-                },
-              },
-            }));
-
-            // Passer à la méthode suivante si en mode cyclique
-            const commonMethodsStore = useCommonMethodsStore.getState();
-            if (commonMethodsStore.cyclicMode) {
-              const nextMethodId = useMethodManagerStore
-                .getState()
-                .getNextMethodId(methodId);
-              if (nextMethodId) {
-                useMethodManagerStore
-                  .getState()
-                  .switchToNextMethod(methodId, nextMethodId);
-              }
-            }
-          }, 2000); // Attendre 2 secondes pour laisser le temps au tapis de s'afficher
-        }
-
         return { methodCapital: newMethodCapital };
       });
     },
