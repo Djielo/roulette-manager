@@ -186,12 +186,7 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
             );
             console.log(`Gain: ${winAmount}€, Mise déduite: ${betAmount}€`);
 
-            // Mettre à jour les capitaux du manager
-            const appManagerStore = useAppManagerStore.getState();
-            appManagerStore.setCapital("initial", newCurrent);
-            updateManagerCurrentCapital(newCurrent);
-
-            // Marquer la méthode comme terminée avec bénéfice
+            // Mettre à jour le capital de la méthode
             const newMethodCapital = {
               ...state.methodCapital,
               [methodId]: {
@@ -200,6 +195,11 @@ export const useMethodCapitalStore = create<StoreState & StoreActions>(
                 validated: newCurrent,
               },
             };
+
+            // Valider le capital final
+            const appManagerStore = useAppManagerStore.getState();
+            appManagerStore.setCapital("initial", newCurrent);
+            appManagerStore.setCapital("current", newCurrent);
 
             // Passer à la méthode suivante si en mode cyclique
             const commonMethodsStore = useCommonMethodsStore.getState();

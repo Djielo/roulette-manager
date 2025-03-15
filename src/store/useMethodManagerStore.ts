@@ -37,7 +37,22 @@ export const useMethodManagerStore = create<StoreState & StoreActions>(
     },
 
     switchToNextMethod: (currentMethodId, nextMethodId) => {
-      console.log(`Transition de ${currentMethodId} à ${nextMethodId}`);
+      console.log(
+        `Tentative de transition de ${currentMethodId} à ${nextMethodId}`
+      );
+
+      // Vérifier le nombre de tours restants pour la méthode Chasse
+      if (currentMethodId === "chasse") {
+        const chasseState = useChasseStore.getState().chasseState;
+        if (chasseState.remainingPlayTours > 0) {
+          console.log(
+            `Transition annulée : il reste encore ${chasseState.remainingPlayTours} tours à jouer`
+          );
+          return;
+        }
+      }
+
+      console.log(`Transition validée de ${currentMethodId} à ${nextMethodId}`);
 
       // Initialiser la nouvelle méthode avec le capital actuel du manager
       useMethodCapitalStore.getState().initializeMethodCapital(nextMethodId);
