@@ -1,10 +1,11 @@
-import { FC, useEffect } from "react";
+import { FC, useEffect, useRef } from "react";
+import { useAppManagerStore } from "../../store/useAppManagerStore";
 import { useChasseStore } from "../../store/useChasseStore";
+import { useCommonMethodsStore } from "../../store/useCommonMethodsStore";
 import { useMethodCapitalStore } from "../../store/useMethodCapitalStore";
 import { useRouletteStore } from "../../store/useRouletteStore";
 import { ChasseMethodState } from "../../types/methods/chasse";
 import { BetPosition, RouletteNumber } from "../../types/roulette";
-import type { CombinedStoreState } from "../../types/stores";
 import { formatRouletteNumber } from "../../utils/rouletteUtils";
 
 export interface ChasseStore {
@@ -19,16 +20,16 @@ const ChasseMethod: FC = () => {
   const chasseState = useChasseStore().chasseState;
 
   // Extraction des méthodes du store roulette combiné avec le type correct
-  const store = useRouletteStore() as CombinedStoreState;
-  const activeMethod = store.methods.find((m) => m.selected);
+  const store = useRouletteStore();
+  const { activeMethodId } = useCommonMethodsStore();
   const config = store.methodConfigs["chasse"];
-  const pendingMethods = store.pendingMethods;
-  const cyclicMode = store.cyclicMode;
-  const { deductBets, switchToNextMethod } = store;
+  const { deductBets } = store;
+  const methodCapital =
+    useMethodCapitalStore().methodCapital[activeMethodId || ""];
 
-  const methodCapital = useMethodCapitalStore((state) =>
-    activeMethod?.id ? state.methodCapital[activeMethod.id] : null
-  );
+  // Log pour déboguer les valeurs de methodCapital
+  console.log("ChasseMethod - methodCapital:", methodCapital);
+  console.log("ChasseMethod - activeMethodId:", activeMethodId);
 
   const {
     phase,
@@ -38,18 +39,84 @@ const ChasseMethod: FC = () => {
     selectedNumbers,
   } = chasseState;
 
+  // Référence pour suivre le dernier tour traité
+  const lastProcessedTourRef = useRef(remainingPlayTours);
+
+  // Référence pour suivre si les mises initiales ont été déduites
+  const initialBetsDeductedRef = useRef(false);
+
   // Surveiller les changements de phase
   useEffect(() => {
     console.log(
       `Phase actuelle: ${phase}, Tours restants: ${
         phase === "observation" ? remainingObservationTours : remainingPlayTours
+      }, Active Method: ${activeMethodId}, Selected Numbers: ${
+        selectedNumbers.length
       }`
     );
-  }, [phase, remainingObservationTours, remainingPlayTours]);
+
+    // Réinitialiser le flag lorsqu'on revient en phase d'observation
+    if (phase === "observation") {
+      initialBetsDeductedRef.current = false;
+      lastProcessedTourRef.current = 12; // Réinitialiser à la valeur maximale
+    }
+  }, [
+    phase,
+    remainingObservationTours,
+    remainingPlayTours,
+    activeMethodId,
+    selectedNumbers,
+  ]);
+
+  // Déduire les mises initiales dès l'entrée en phase de jeu
+  useEffect(() => {
+    if (
+      phase === "play" &&
+      chasseState.phaseChanged &&
+      selectedNumbers.length > 0 &&
+      !initialBetsDeductedRef.current &&
+      activeMethodId
+    ) {
+      console.log(
+        "Déduction des mises initiales à l'entrée en phase de jeu (détecté par phaseChanged)"
+      );
+
+      const bets: BetPosition[] = selectedNumbers.map((number) => ({
+        type: "number",
+        value: number,
+        amount: config?.betUnit ?? 0.2,
+      }));
+
+      console.log("Mises initiales à déduire:", bets);
+      console.log("Active Method ID:", activeMethodId);
+
+      deductBets(activeMethodId, bets);
+      initialBetsDeductedRef.current = true;
+      lastProcessedTourRef.current = 11; // Pour que la prochaine déduction se fasse au tour 11
+    }
+  }, [
+    chasseState.phaseChanged,
+    phase,
+    selectedNumbers,
+    activeMethodId,
+    config,
+    deductBets,
+  ]);
 
   // Déduire les mises à chaque tour de la phase de jeu
   useEffect(() => {
-    if (phase === "play") {
+    console.log(
+      `Vérification de déduction - Tour actuel: ${remainingPlayTours}, Dernier tour traité: ${lastProcessedTourRef.current}`
+    );
+
+    if (
+      phase === "play" &&
+      remainingPlayTours !== lastProcessedTourRef.current &&
+      selectedNumbers.length > 0 &&
+      activeMethodId
+    ) {
+      console.log(`Traitement du tour ${remainingPlayTours}`);
+
       const bets: BetPosition[] = selectedNumbers.map((number) => ({
         type: "number",
         value: number,
@@ -57,52 +124,54 @@ const ChasseMethod: FC = () => {
       }));
 
       console.log("Mises générées dans ChasseMethod:", bets);
+      console.log("Active Method ID pour déduction:", activeMethodId);
 
-      if (activeMethod?.id) {
-        deductBets(activeMethod.id, bets);
-      }
+      deductBets(activeMethodId, bets);
+
+      // Mettre à jour la référence du dernier tour traité
+      lastProcessedTourRef.current = remainingPlayTours;
     }
   }, [
     phase,
     remainingPlayTours,
     selectedNumbers,
-    activeMethod,
+    activeMethodId,
     config,
     deductBets,
   ]);
 
   // Gérer la fin de la phase de jeu
   useEffect(() => {
-    if (phase === "play" && remainingPlayTours === 0 && activeMethod?.id) {
-      console.log("Fin de la phase de jeu détectée");
-      const currentMethodId = activeMethod.id;
+    const checkGameEnd = () => {
+      const chasseState = useChasseStore.getState().chasseState;
+      const { cyclicMode } = useCommonMethodsStore.getState();
 
-      let nextMethodId: string | null = null;
-      if (cyclicMode && pendingMethods.length === 1) {
-        console.log("Mode cyclique activé avec une seule méthode sélectionnée");
-        nextMethodId = currentMethodId;
-      } else {
-        console.log("Recherche de la méthode suivante");
-        const activeMethodIndex = pendingMethods.indexOf(currentMethodId);
-        const nextMethodIndex = (activeMethodIndex + 1) % pendingMethods.length;
-        nextMethodId = pendingMethods[nextMethodIndex];
-      }
+      console.log("Vérification de la fin de la phase de jeu...");
+      console.log("Phase actuelle:", chasseState.phase);
+      console.log("Tours restants:", chasseState.remainingPlayTours);
+      console.log("Mode cyclique:", cyclicMode);
 
-      if (nextMethodId) {
-        console.log(`Passage à la méthode suivante : ${nextMethodId}`);
-        switchToNextMethod(currentMethodId, nextMethodId);
-      } else {
-        console.log("Aucune méthode suivante trouvée");
+      if (
+        chasseState.phase === "play" &&
+        chasseState.remainingPlayTours === 0 &&
+        !cyclicMode
+      ) {
+        console.log("Fin de la phase de jeu - Mode non cyclique");
+        useAppManagerStore.getState().reset();
       }
-    }
-  }, [
-    phase,
-    remainingPlayTours,
-    activeMethod,
-    pendingMethods,
-    cyclicMode,
-    switchToNextMethod,
-  ]);
+    };
+
+    const unsubscribeChasse = useChasseStore.subscribe(checkGameEnd);
+    const unsubscribeCommon = useCommonMethodsStore.subscribe(checkGameEnd);
+
+    // Vérification initiale
+    checkGameEnd();
+
+    return () => {
+      unsubscribeChasse();
+      unsubscribeCommon();
+    };
+  }, []);
 
   // Helper pour obtenir la couleur du bouton selon le nombre de sorties
   const getButtonColor = (number: number) => {
@@ -130,16 +199,6 @@ const ChasseMethod: FC = () => {
             ? `${remainingObservationTours} tours d'observation restants`
             : `${remainingPlayTours} tours de jeu restants`}
         </div>
-        {methodCapital && (
-          <div className="mt-2">
-            <div className="text-white/80">
-              Capital initial : {methodCapital.initial.toFixed(2)}€
-            </div>
-            <div className="text-white/80">
-              Capital actuel : {methodCapital.current.toFixed(2)}€
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Affichage des numéros */}

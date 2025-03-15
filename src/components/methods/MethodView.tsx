@@ -1,4 +1,4 @@
-import { FC, memo } from "react";
+import { FC, memo, useEffect, useRef, useState } from "react";
 import { useRouletteStore } from "../../store/useRouletteStore";
 import type { Method } from "../../types/methodsTypes";
 import RouletteTable from "../roulette/RouletteTable";
@@ -19,6 +19,25 @@ const MethodView: FC = () => {
     ? store.methodCapital[activeMethod.id]
     : null;
   const globalCapital = store.capital;
+
+  // État et ref pour l'animation du capital
+  const [capitalChanged, setCapitalChanged] = useState(false);
+  const lastCapitalRef = useRef(methodCapital?.current);
+
+  // Effet pour détecter les changements de capital et déclencher l'animation
+  useEffect(() => {
+    if (methodCapital && methodCapital.current !== lastCapitalRef.current) {
+      setCapitalChanged(true);
+      lastCapitalRef.current = methodCapital.current;
+
+      // Réinitialiser l'animation après 1 seconde
+      const timer = setTimeout(() => {
+        setCapitalChanged(false);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [methodCapital]);
 
   // Utiliser des variables pour contrôler l'affichage des méthodes
   const showChasseMethod = activeMethod?.id === "chasse";
@@ -63,7 +82,11 @@ const MethodView: FC = () => {
               <div className="text-sm text-roulette-gold/80">
                 Capital Actuel
               </div>
-              <div className="text-white">
+              <div
+                className={`text-white transition-all duration-300 ${
+                  capitalChanged ? "bg-yellow-500/30 font-bold scale-110" : ""
+                }`}
+              >
                 {methodCapital
                   ? `${
                       typeof methodCapital.current === "number"

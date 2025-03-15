@@ -17,6 +17,7 @@ export interface ChasseMethodState {
   >;
   selectedNumbers: number[]; // Numéros retenus pour le jeu (max 3)
   displayedNumbers: number[]; // Numéros à afficher dans l'interface (historique des numéros observés)
+  phaseChanged?: boolean; // Indicateur de changement de phase pour déclencher des effets
 }
 
 // Fonctions pour gérer la méthode
@@ -54,9 +55,12 @@ export const chasseActions = {
 
     if (state.observationCount === 24) {
       if (state.selectedNumbers.length > 0) {
+        // Marquer le changement de phase
+        const wasInObservation = state.phase === "observation";
         state.phase = "play";
         state.playCount = 0;
         state.remainingPlayTours = 12;
+        state.phaseChanged = wasInObservation; // Vrai si on était en observation
       } else {
         state.phase = "finished";
       }
@@ -68,6 +72,8 @@ export const chasseActions = {
     if (state.phase === "play") {
       // En phase de jeu, on ajoute simplement le numéro aux displayedNumbers
       state.displayedNumbers.push(number);
+      // Réinitialiser l'indicateur de changement de phase
+      state.phaseChanged = false;
     } else if (state.phase === "observation" && state.observationCount < 24) {
       state.observationCount++;
       state.remainingObservationTours--;
@@ -98,15 +104,20 @@ export const chasseActions = {
             "Transition vers la phase de jeu. Numéros sélectionnés:",
             state.selectedNumbers
           );
+
+          // Marquer le changement de phase
+          const wasInObservation = state.phase === "observation";
           state.phase = "play";
           state.playCount = 0;
           state.remainingPlayTours = 12;
+          state.phaseChanged = wasInObservation; // Vrai si on était en observation
 
           // Log supplémentaire pour vérifier l'état après la transition
           console.log("État après transition vers la phase de jeu:", {
             phase: state.phase,
             selectedNumbers: state.selectedNumbers,
             remainingPlayTours: state.remainingPlayTours,
+            phaseChanged: state.phaseChanged,
           });
         } else {
           console.log(
@@ -142,9 +153,13 @@ export const chasseActions = {
         "Passage automatique en phase de jeu avec les numéros:",
         eligibleNumbers
       );
+
+      // Marquer le changement de phase
+      const wasInObservation = state.phase === "observation";
       state.phase = "play";
       state.playCount = 0;
       state.remainingPlayTours = 12;
+      state.phaseChanged = wasInObservation; // Vrai si on était en observation
     }
   },
 };

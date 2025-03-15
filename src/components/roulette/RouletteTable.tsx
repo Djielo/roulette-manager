@@ -1,5 +1,6 @@
-import { FC, useEffect } from "react";
+import { FC, useEffect, useMemo } from "react";
 import { useCommonMethodsStore } from "../../store/useCommonMethodsStore";
+import { useMethodCapitalStore } from "../../store/useMethodCapitalStore";
 import { useRouletteStore } from "../../store/useRouletteStore";
 import { RouletteNumber } from "../../types/roulette";
 import { formatRouletteNumber } from "../../utils/rouletteUtils";
@@ -17,8 +18,9 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
   const activeMethodId = useCommonMethodsStore((state) => state.activeMethodId);
   const config = methodConfigs["chasse"];
   const addSpin = useCommonMethodsStore((state) => state.addSpin);
+  const creditWin = useMethodCapitalStore((state) => state.creditWin);
 
-  // Log pour déboguer l'état de chasseState
+  // Log pour déboguer l'état de chasseState (une seule fois lors des changements importants)
   useEffect(() => {
     if (chasseState.phase === "play") {
       console.log("État de chasseState dans RouletteTable:", {
@@ -27,17 +29,16 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
         remainingPlayTours: chasseState.remainingPlayTours,
       });
     }
-  }, [chasseState]);
+  }, [
+    chasseState.phase,
+    chasseState.remainingPlayTours,
+    chasseState.selectedNumbers,
+  ]);
 
-  // Log pour déboguer activeMethodId
-  useEffect(() => {
-    console.log("activeMethodId dans RouletteTable:", activeMethodId);
-  }, [activeMethodId]);
-
-  const getBets = () => {
+  // Calculer les mises une seule fois avec useMemo
+  const bets = useMemo(() => {
     // Ne générer les mises que si nous sommes en phase de jeu
     if (chasseState.phase !== "play") {
-      console.log("Phase d'observation, pas de mises à afficher");
       return [];
     }
 
@@ -48,32 +49,34 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
       return [];
     }
 
-    console.log(
-      "Méthode active (par activeMethodId):",
-      activeMethodId,
-      "Phase:",
-      chasseState.phase
-    );
-
     switch (activeMethodId) {
       case "chasse":
         if (chasseState.selectedNumbers.length > 0) {
-          const bets = chasseState.selectedNumbers.map((number) => ({
+          const generatedBets = chasseState.selectedNumbers.map((number) => ({
             type: "number" as const,
             value: number,
             amount: config?.betUnit || 0.2,
           }));
-          console.log("Mises générées pour le tapis:", bets);
-          return bets;
+
+          // Log une seule fois lors de la génération initiale des mises
+          if (chasseState.remainingPlayTours === 12) {
+            console.log("Mises générées pour le tapis:", generatedBets);
+          }
+
+          return generatedBets;
         } else {
-          console.log("Aucun numéro sélectionné, pas de mises à afficher");
           return [];
         }
       default:
-        console.log("Méthode non prise en charge:", activeMethodId);
         return [];
     }
-  };
+  }, [
+    chasseState.phase,
+    chasseState.selectedNumbers,
+    chasseState.remainingPlayTours,
+    activeMethodId,
+    config,
+  ]);
 
   const handleNumberClick = (number: RouletteNumber) => {
     if (!isPlaying) return;
@@ -81,6 +84,18 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
     console.log(
       `Clic sur le numéro ${number}, méthode active: ${activeMethodId}, phase: ${chasseState.phase}`
     );
+
+    // Vérifier si le numéro cliqué est un numéro sélectionné pour les mises
+    if (
+      chasseState.phase === "play" &&
+      activeMethodId &&
+      chasseState.selectedNumbers.includes(number)
+    ) {
+      console.log(`Numéro gagnant: ${number}, crédit du gain`);
+      // Créditer le gain (mise * 36)
+      const betAmount = config?.betUnit || 0.2;
+      creditWin(activeMethodId, betAmount);
+    }
 
     addSpin(number);
     onNumberClick?.(number);
@@ -183,7 +198,7 @@ const RouletteTable: FC<RouletteTableProps> = ({ onNumberClick }) => {
             bottom: "0",
           }}
         >
-          <BetsOverlay bets={getBets()} />
+          <BetsOverlay bets={bets} />
         </div>
       )}
     </div>

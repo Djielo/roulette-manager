@@ -22,6 +22,7 @@ const DEFAULT_CHASSE_STATE: ChasseMethodState = {
   numberCounts: {},
   selectedNumbers: [],
   displayedNumbers: [],
+  phaseChanged: false,
 };
 
 export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
@@ -44,6 +45,7 @@ export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
       numberCounts: {},
       selectedNumbers: [],
       displayedNumbers: [],
+      phaseChanged: false,
     };
 
     if (history.length > 0) {
@@ -62,6 +64,7 @@ export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
       phase: state.phase,
       displayedNumbers: state.displayedNumbers.length,
       numberCounts: Object.keys(state.numberCounts).length,
+      phaseChanged: state.phaseChanged,
     });
 
     set({ chasseState: state });
@@ -69,8 +72,15 @@ export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
 
   updateChasseState: (number: RouletteNumber) => {
     const state = { ...get().chasseState };
+    const oldPhase = state.phase;
     chasseActions.addNumber(state, number);
-    // La fonction addNumber s'occupe déjà d'ajouter le numéro à displayedNumbers
+
+    // Vérifier si la phase a changé après l'ajout du numéro
+    if (oldPhase !== state.phase) {
+      console.log(`Phase changée de ${oldPhase} à ${state.phase}`);
+      state.phaseChanged = true;
+    }
+
     set({ chasseState: state });
   },
 
@@ -90,6 +100,7 @@ export const useChasseStore = create<StoreState & StoreActions>((set, get) => ({
             ...chasseState,
             remainingPlayTours: newRemainingPlayTours,
             playCount: chasseState.playCount + 1,
+            phaseChanged: false, // Réinitialiser l'indicateur de changement de phase
           },
         };
       }

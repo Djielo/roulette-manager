@@ -93,25 +93,46 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
     validationErrors: [],
 
     setCapital: (type, value) => {
+      const setId = Math.floor(Math.random() * 1000000); // ID unique pour tracer cette opération
+      console.log(
+        `[${setId}] setCapital appelé avec type=${type}, value=${value}, typeof value=${typeof value}`
+      );
+
       set((state) => {
+        // Convertir la valeur en nombre si c'est une chaîne
         const numericValue =
           typeof value === "string" ? parseFloat(value) || 0 : value;
-        const newCapital = { ...state.capital, [type]: value };
+        console.log(`[${setId}] Valeur numérique calculée: ${numericValue}`);
 
+        // Créer une copie du capital actuel
+        const newCapital = { ...state.capital };
+
+        // Mettre à jour le type spécifié (initial ou current)
+        newCapital[type] = numericValue;
+
+        // Si on met à jour le capital initial, mettre également à jour le capital courant
         if (type === "initial") {
           newCapital.current = numericValue;
+          console.log(
+            `[${setId}] Mise à jour du capital initial ET courant à ${numericValue}`
+          );
         }
 
-        if (type === "current") {
-          const initialValue =
-            typeof state.capital.initial === "string"
-              ? parseFloat(state.capital.initial) || 0
-              : state.capital.initial;
-          newCapital.evolution = {
-            amount: numericValue - initialValue,
-            percentage: ((numericValue - initialValue) / initialValue) * 100,
-          };
-        }
+        // Calculer l'évolution
+        const initialValue =
+          typeof newCapital.initial === "string"
+            ? parseFloat(newCapital.initial) || 0
+            : newCapital.initial;
+
+        newCapital.evolution = {
+          amount: newCapital.current - initialValue,
+          percentage:
+            initialValue !== 0
+              ? ((newCapital.current - initialValue) / initialValue) * 100
+              : 0,
+        };
+
+        console.log(`[${setId}] Nouveau capital:`, newCapital);
 
         return { capital: newCapital };
       });
@@ -189,6 +210,10 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
         const pendingMethods = useCommonMethodsStore.getState().pendingMethods;
         const firstMethodId = pendingMethods[0];
 
+        console.log("========== DÉMARRAGE DU JEU ==========");
+        console.log("Première méthode:", firstMethodId);
+        console.log("Méthodes en attente:", pendingMethods);
+
         set({
           isPlaying: true,
           sessionLocked: true,
@@ -200,18 +225,34 @@ export const useAppManagerStore = create<StoreState & StoreActions>(
         });
 
         if (firstMethodId) {
+          console.log("Initialisation de la première méthode...");
           useMethodManagerStore.getState().initializeMethod(firstMethodId);
+
+          console.log("Initialisation du capital de la méthode...");
           useMethodCapitalStore
             .getState()
             .initializeMethodCapital(firstMethodId);
+
+          console.log("Mise à jour de l'activeMethodId...");
           useCommonMethodsStore.setState((state) => ({
             ...state,
             activeMethodId: firstMethodId,
           }));
+
+          console.log("État final après initialisation:");
+          console.log(
+            "- activeMethodId:",
+            useCommonMethodsStore.getState().activeMethodId
+          );
+          console.log(
+            "- methodCapital:",
+            useMethodCapitalStore.getState().methodCapital
+          );
         }
 
         get().startTimer();
         get().clearValidationErrors();
+        console.log("====================================");
       }
     },
 
